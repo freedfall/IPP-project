@@ -86,13 +86,13 @@ class XMLSourceAnalyzer
         $args = [];
         foreach ($instruction->childNodes as $child) {
             if ($child instanceof DOMElement) {
-                $argType = $child->nodeName; // Например, arg1, arg2 и т.д.
+                $argType = $child->nodeName; // ex arg1, arg2 etc.
                 $value = $child->nodeValue;
-                $type = $child->getAttribute('type'); // Если тип аргумента указан
+                $type = $child->getAttribute('type'); // if argument type is specified
                 $args[] = [
                     'type' => $argType,
                     'value' => $value,
-                    'dataType' => $type, // Например, int, bool, string
+                    'dataType' => $type, // ex int, string etc.
                 ];
             }
         }

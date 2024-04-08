@@ -61,9 +61,7 @@ Internally, the script utilizes dictionaries, tuples, and lists to manage the pr
 <a id="eval"></a>
 #### Evaluation
 
-    Will be updated
+    6/7
 
 <a id="interpret"></a>
 ## Interpret
-
-    Will be updated

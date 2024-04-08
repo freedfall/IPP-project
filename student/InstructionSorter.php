@@ -2,16 +2,13 @@
 
 namespace IPP\Student;
 
-use DOMNodeList;
-
 class InstructionSorter
 {
-    public function sortInstructions(DOMNodeList $instructions): array
+    public function sortInstructions(array $instructions): array
     {
-        $instructionsArray = iterator_to_array($instructions);
-        usort($instructionsArray, function ($a, $b) {
-            return (int)$a->getAttribute('order') <=> (int)$b->getAttribute('order');
+        usort($instructions, function ($a, $b) {
+            return (int)$a['order'] <=> (int)$b['order'];
         });
-        return $instructionsArray;
+        return $instructions;
     }
 }

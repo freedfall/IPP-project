@@ -6,7 +6,7 @@ use DOMDocument;
 use DOMXPath;
 use Exception;
 
-class XMLSourceAnalyzer
+class XMLAnalyzer
 {
     protected $dom;
 
@@ -81,18 +81,19 @@ class XMLSourceAnalyzer
 
         return $instructionsData;
     }
-    protected function extractArgs(DOMElement $instruction): array
+    protected function extractArgs(\DOMElement $instruction): array
     {
         $args = [];
         foreach ($instruction->childNodes as $child) {
-            if ($child instanceof DOMElement) {
-                $argType = $child->nodeName; // ex arg1, arg2 etc.
+            if ($child instanceof \DOMElement) {
+                // Например, arg1, arg2 и т.д.
+                $argType = $child->getAttribute('type');
+                // Получаем текстовое содержимое элемента, а не nodeValue
                 $value = $child->nodeValue;
-                $type = $child->getAttribute('type'); // if argument type is specified
                 $args[] = [
-                    'type' => $argType,
+                    'type' => $child->nodeName, // arg1, arg2, etc.
                     'value' => $value,
-                    'dataType' => $type, // ex int, string etc.
+                    'dataType' => $argType, // Например, var, int, string и т.д.
                 ];
             }
         }

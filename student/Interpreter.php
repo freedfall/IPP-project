@@ -4,41 +4,33 @@ namespace IPP\Student;
 
 use IPP\Core\AbstractInterpreter;
 use IPP\Core\Exception\NotImplementedException;
+use IPP\Student\InstructionProcessor;
+use IPP\Student\InstructionSorter;
+use IPP\Student\ResultOutputter;
+use IPP\Student\XMLSourceAnalyzer;
 
 class Interpreter extends AbstractInterpreter
 {
     public function execute(): int
     {
-        // Import and analyze XML source file
-        $dom = $this->source->getDOMDocument();
-        $xpath = new \DOMXPath($dom);
+        //Intialize the source analyzer
+        $sourceAnalyzer = new XMLSourceAnalyzer($this->source->getDOMDocument());
+        $sourceAnalyzer->analyze();
 
-        // Collect and sort all instructions by the order attribute
-        $instructions = $xpath->query('/program/instruction');
-        $sortedInstructions = $this->sortInstructions($instructions);
+        $sorter = new InstructionSorter();
+        $sortedInstructions = $sorter->sortInstructions($instructions);
+
+        $processor = new InstructionProcessor();
+        $outputter = new ResultOutputter($this->stdout, $this->stderr);
 
         // Handle each instruction
         foreach ($sortedInstructions as $instruction) {
-            $result = $this->processInstruction($instruction);
+            $result = $processor->processInstruction($instruction);
             if ($result !== null) {
-                $this->outputResult($result);
+                $outputter->outputResult($result);
             }
         }
 
-        $val = $this->input->readString();
-        $this->stdout->writeString("stdout");
-        $this->stderr->writeString("stderr");
-        throw new NotImplementedException;
-    }
-    protected function processInstruction($instruction): ?string {
-        $opcode = strtoupper($instruction->getAttribute('opcode'));
-        switch ($opcode) {
-            case 'WRITE':
-                return $this->handleWrite($instruction);
-            // Обработка других инструкций...
-            default:
-                // Обработка неизвестной инструкции или инструкций без вывода
-                return null;
-        }
+        return 0; // Success
     }
 }

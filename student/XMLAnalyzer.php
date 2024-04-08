@@ -15,13 +15,12 @@ class XMLSourceAnalyzer
         $this->dom = $dom;
     }
 
-    public function analyze(): void
+    public function analyze(): array
     {
-        // check root element
         $this->checkRoot();
+        $instructionsData = $this->extractInstructions();
 
-        // check instructions
-        $this->checkInstructions();
+        return $instructionsData;
     }
 
     protected function checkRoot(): void
@@ -61,6 +60,43 @@ class XMLSourceAnalyzer
                 throw new Exception("The 'order' attribute of an instruction must be a positive integer.");
             }
         }
+    }
+    protected function extractInstructions(): array
+    {
+        $xpath = new DOMXPath($this->dom);
+        $instructionsNodes = $xpath->query('/program/instruction');
+        $instructionsData = [];
+
+        foreach ($instructionsNodes as $node) {
+            $opcode = $node->getAttribute('opcode');
+            $order = $node->getAttribute('order');
+            $args = $this->extractArgs($node);
+
+            $instructionsData[] = [
+                'order' => $order,
+                'opcode' => $opcode,
+                'args' => $args,
+            ];
+        }
+
+        return $instructionsData;
+    }
+    protected function extractArgs(DOMElement $instruction): array
+    {
+        $args = [];
+        foreach ($instruction->childNodes as $child) {
+            if ($child instanceof DOMElement) {
+                $argType = $child->nodeName; // Например, arg1, arg2 и т.д.
+                $value = $child->nodeValue;
+                $type = $child->getAttribute('type'); // Если тип аргумента указан
+                $args[] = [
+                    'type' => $argType,
+                    'value' => $value,
+                    'dataType' => $type, // Например, int, bool, string
+                ];
+            }
+        }
+        return $args;
     }
 }
 

@@ -1,5 +1,10 @@
 <?php
-
+/**
+ * IPP Interpreter
+ * Class for processing instructions
+ * @author Timur Kininbayev (xkinin00)
+ * 
+ */
 namespace IPP\Student;
 
 use DOMElement;
@@ -81,4 +86,41 @@ class InstructionProcessor
         // $position = array_pop($this->callStack);
         // Изменяем текущую позицию на $position
     }
+    protected function getFrame($frameType)
+    {
+        switch ($frameType) {
+            case 'GF':
+                return $this->globalFrame;
+            case 'TF':
+                return $this->tempFrame;
+            case 'LF':
+                // return current local frame if exists
+                if (!empty($this->frameStack)) {
+                    return end($this->frameStack);
+                } else {
+                    throw new \Exception("Local frame stack is empty.");
+                }
+            default:
+                throw new \Exception("Invalid frame type: {$frameType}");
+        }
+    }
+    protected function getVariableValue($fullVarName)
+    {
+        list($frameType, $varName) = explode('@', $fullVarName, 2);
+        $frame = $this->getFrame($frameType);
+
+        if (isset($frame[$varName])) {
+            return $frame[$varName];
+        } else {
+            throw new \Exception("Variable {$fullVarName} not found.");
+        }
+    }
+    protected function setVariableValue($fullVarName, $value)
+    {
+        list($frameType, $varName) = explode('@', $fullVarName, 2);
+        $frame = &$this->getFrame($frameType);
+
+        $frame[$varName] = $value;
+    }
+
 }

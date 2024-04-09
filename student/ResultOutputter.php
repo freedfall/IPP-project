@@ -1,5 +1,10 @@
 <?php
-
+/**
+ * IPP Interpreter
+ * Class for outputting results
+ * @author Timur Kininbayev (xkinin00)
+ * 
+ */
 namespace IPP\Student\Output;
 
 class ResultOutputter

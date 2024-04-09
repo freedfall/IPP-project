@@ -1,5 +1,10 @@
 <?php
-
+/**
+ * IPP Interpreter
+ * Class for sorting instructions
+ * @author Timur Kininbayev (xkinin00)
+ * 
+ */
 namespace IPP\Student;
 
 class InstructionSorter

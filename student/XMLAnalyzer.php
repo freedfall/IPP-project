@@ -1,5 +1,10 @@
 <?php
-
+/**
+ * IPP Interpreter
+ * Class for analyzing XML source
+ * @author Timur Kininbayev (xkinin00)
+ * 
+ */
 namespace IPP\Student;
 
 use DOMDocument;
@@ -86,14 +91,12 @@ class XMLAnalyzer
         $args = [];
         foreach ($instruction->childNodes as $child) {
             if ($child instanceof \DOMElement) {
-                // Например, arg1, arg2 и т.д.
                 $argType = $child->getAttribute('type');
-                // Получаем текстовое содержимое элемента, а не nodeValue
                 $value = $child->nodeValue;
                 $args[] = [
                     'type' => $child->nodeName, // arg1, arg2, etc.
                     'value' => $value,
-                    'dataType' => $argType, // Например, var, int, string и т.д.
+                    'dataType' => $argType,
                 ];
             }
         }

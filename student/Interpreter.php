@@ -1,5 +1,10 @@
 <?php
-
+/**
+ * IPP Interpreter
+ * Main class for interpreting
+ * @author Timur Kininbayev (xkinin00)
+ * 
+ */
 namespace IPP\Student;
 
 use IPP\Core\AbstractInterpreter;
@@ -15,7 +20,7 @@ class Interpreter extends AbstractInterpreter
     {
         //Intialize the source analyzer
         $sourceAnalyzer = new XMLSourceAnalyzer($this->source->getDOMDocument());
-        $sourceAnalyzer->analyze();
+        $instructions = $sourceAnalyzer->analyze();
 
         $sorter = new InstructionSorter();
         $sortedInstructions = $sorter->sortInstructions($instructions);
@@ -23,7 +28,7 @@ class Interpreter extends AbstractInterpreter
         $processor = new InstructionProcessor();
         $outputter = new ResultOutputter($this->stdout, $this->stderr);
 
-        // Handle each instruction
+        //Handle each instruction
         foreach ($sortedInstructions as $instruction) {
             $result = $processor->processInstruction($instruction);
             if ($result !== null) {

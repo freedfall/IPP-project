@@ -73,7 +73,7 @@ class InstructionProcessor
      * @return string|null Result of the instruction or null if the instruction does not produce output.
      * @throws \Exception If the instruction is unknown or an error occurs.
      */
-    public function processInstruction(array $instruction): ?string
+    public function processInstruction(array $instruction): mixed
     {
         switch (strtoupper($instruction['opcode'])) {
             case 'MOVE':
@@ -91,7 +91,7 @@ class InstructionProcessor
             case 'RETURN':
                 return $this->handleReturn();
             case 'LABEL':
-                return $this->handleLabel($instruction['args']);
+                return null;
             case 'PUSHS':
                 return $this->handlePushs($instruction['args']);
             case 'POPS':
@@ -132,12 +132,33 @@ class InstructionProcessor
                 return $this->handleGetchar($instruction['args']);
             case 'SETCHAR':
                 return $this->handleSetchar($instruction['args']);
+            case 'TYPE':
+                return $this->handleType($instruction['args']);
+            case 'JUMP':
+                return $this->handleJump($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
         }
     }
-
+    /**
+     * Add all the labels from document into array
+     * 
+     * @param array<mixed> $instructions Sorted instruction array
+     */
+    public function checkLabels(array $instructions): void
+    {
+        foreach ($instructions as $instruction){
+            if (strtoupper($instruction['opcode']) === 'LABEL'){
+                $label = $instruction['args'][0]['value'];
+                if (array_key_exists($label, $this->labels)){
+                    HelperFunctions::HandleException(ReturnCode::SEMANTIC_ERROR);
+                }
+                $this->labels[$label] = $instruction['order'];
+            }
+            
+        }
+    }
     /**
      * Determines the value of the argument
      * @param array<mixed> $arg Argument
@@ -152,11 +173,11 @@ class InstructionProcessor
                 return (int)$arg['value'];
             case 'bool':
                 // convert string to boolean (every string except 'true' is false)
-                return $arg['value'] === 'true' ? 'true' : 'false';
+                return $arg['value'] === 'true' ? true : false;
             case 'float':
                 return (float)$arg['value'];
             case 'nil':
-                return '';
+                return 'nil@nil';
             default:
                 return $arg['value'];
         }
@@ -363,7 +384,7 @@ class InstructionProcessor
     }
 
     /**
-     * Handling LABEL instruction
+     * Handling PUSHS instruction
      * 
      * @param array<mixed> $args Array of arguments
      * @return null
@@ -376,7 +397,7 @@ class InstructionProcessor
     }
 
     /**
-     * Handling LABEL instruction
+     * Handling POPS instruction
      * 
      * @param array<mixed> $args Array of arguments
      * @return null
@@ -590,7 +611,6 @@ class InstructionProcessor
 
         $result = $this->compareValues($symb1Value, $symb2Value, $operator);
         $this->setVariableValue($varName, $result);
-        print($result);
 
         return null;
     }
@@ -788,17 +808,17 @@ class InstructionProcessor
      * Handling STR2INT instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return string
+     * @return mixed
      * @throws \Exception If arguments are invalid
      */
-    protected function handleWrite(array $args): string
+    protected function handleWrite(array $args): mixed
     {
         if (count($args) != 1) {
             ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
 
         $value = $this->determineValue($args[0]);
-
+        
         return $value;
     }
 
@@ -897,6 +917,48 @@ class InstructionProcessor
         $result = mb_substr($varName, 0, $position, "UTF-8") . $charToInsert . mb_substr($varName, $position + 1, mb_strlen($varName, "UTF-8") - $position - 1, "UTF-8");
 
         $this->setVariableValue($args[0]['value'], $result);
+
+        return null;
+    }
+
+    /**
+     * Handling TYPE instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleType(array $args)
+    {
+        HelperFunctions::CheckArgs($args, 2);
+
+        $varName = $args[0]['value'];
+        $symbValue = $this->determineValue($args[1]);
+
+        $result = HelperFunctions::getDataType($symbValue);
+
+        $this->setVariableValue($varName, $result);
+
+        return null;
+    }
+
+    /**
+     * Handling JUMP instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleJump(array $args)
+    {
+        HelperFunctions::CheckArgs($args, 1);
+
+        $label = $args[0]['value'];
+        if (!array_key_exists($label, $this->labels)) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+        $this->instructionIndex = $this->labels[$label];
+        $this->indexModified = true;
 
         return null;
     }

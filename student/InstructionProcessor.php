@@ -124,6 +124,10 @@ class InstructionProcessor
                 return $this->handleRead($instruction['args']);
             case 'WRITE':
                 return $this->handleWrite($instruction['args']);
+            case 'CONCAT':
+                return $this->handleConcat($instruction['args']);
+            case 'STRLEN':
+                return $this->handleStrlen($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
@@ -137,30 +141,23 @@ class InstructionProcessor
      */
     protected function determineValue($arg): mixed
     {
-        if ($arg['dataType'] === 'var') {
-            // get the value of the variable
-            $value = $this->getVariableValue($arg['value']);
-        } else {
-            $value = $arg['value'];
-        }
-
         switch ($arg['dataType']) {
             case 'var':
-                $value = $this->getVariableValue($arg['value']);
+                return $this->getVariableValue($arg['value']);
                 break;
             case 'int':
                 return (int)$arg['value'];
             case 'bool':
                 // convert string to boolean (every string except 'true' is false)
-                return $value === 'true' ? 'true' : 'false';
+                return $arg['value'] === 'true' ? 'true' : 'false';
             case 'float':
                 return (float)$arg['value'];
             case 'nil':
-                $value = '';
+                return '';
                 break;
+            default:
+                return $arg['value'];
         }
-        
-        return $value;
     }
 
     /**
@@ -292,9 +289,7 @@ class InstructionProcessor
      */
     protected function handleDefvar(array $args): ?string
     {
-        if (count($args) != 1) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::CheckArgs($args, 1);
 
         $fullVarName = $args[0]['value'];
         list($frameType, $varName) = explode('@', $fullVarName, 2);
@@ -406,9 +401,7 @@ class InstructionProcessor
      */
     protected function handleAdd(array $args)
     {
-        if (count($args) != 3) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::CheckArgs($args, 3);
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
@@ -805,5 +798,45 @@ class InstructionProcessor
         $value = $this->determineValue($args[0]);
 
         return $value;
+    }
+
+    /**
+     * Handling CONCAT instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleConcat(array $args)
+    {
+        HelperFunctions::CheckArgs($args, 3);
+
+        $varName = $args[0]['value'];
+        $symb1Value = $this->determineValue($args[1]);
+        $symb2Value = $this->determineValue($args[2]);
+
+        $result = $symb1Value . $symb2Value;
+        $this->setVariableValue($varName, $result);
+        return null;
+    }
+
+    /**
+     * Handling STRLEN instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleStrlen(array $args)
+    {
+        HelperFunctions::CheckArgs($args, 2);
+
+        $varName = $args[0]['value'];
+        $stringValue = $this->determineValue($args[1]);
+
+        $result = mb_strlen($stringValue, "UTF-8");
+        $this->setVariableValue($varName, $result);
+
+        return null;
     }
 }

@@ -10,6 +10,8 @@ namespace IPP\Student;
 use DOMDocument;
 use DOMXPath;
 use Exception;
+use IPP\Core\ReturnCode;
+use IPP\Student\ErrorHandler;
 
 class XMLAnalyzer
 {
@@ -20,6 +22,10 @@ class XMLAnalyzer
         $this->dom = $dom;
     }
 
+    /**
+     * Analyze the XML source
+     * @return array Array of instructions
+     */
     public function analyze(): array
     {
         $this->checkRoot();
@@ -28,21 +34,29 @@ class XMLAnalyzer
         return $instructionsData;
     }
 
+    /**
+     * Check the root element of the XML source
+     * @throws Exception If the root element is missing or incorrect
+     */
     protected function checkRoot(): void
     {
         // check that root element is 'program'
         $root = $this->dom->documentElement;
         if ($root === null || $root->nodeName !== 'program') { 
-            throw new Exception("Root element 'program' is missing or incorrect.");
+            ErrorHandler::handleException(ReturnCode::INPUT_FILE_ERROR);
         }
 
         // check that 'language' attribute is 'IPPcode24'
         $language = $root->getAttribute('language');
         if (strtolower($language) !== 'ippcode24') {
-            throw new Exception("The 'language' attribute of the program is missing or not 'IPPcode24'.");
+            ErrorHandler::handleException(ReturnCode::INPUT_FILE_ERROR);
         }
     }
 
+    /**
+     * Check the instructions in the XML source
+     * @throws Exception If no instructions are found or if an instruction is missing 'order' or 'opcode' attributes
+     */
     protected function checkInstructions(): void
     {
         $xpath = new DOMXPath($this->dom);
@@ -56,16 +70,21 @@ class XMLAnalyzer
         // check that each instruction has 'order' and 'opcode' attributes
         foreach ($instructions as $instruction) {
             if (!$instruction->hasAttribute('order') || !$instruction->hasAttribute('opcode')) {
-                throw new Exception("Each instruction must have both 'order' and 'opcode' attributes.");
+                ErrorHandler::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
             }
 
             // check that 'order' attribute is a positive integer
             $order = $instruction->getAttribute('order');
             if (!filter_var($order, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]])) {
-                throw new Exception("The 'order' attribute of an instruction must be a positive integer.");
+                ErrorHandler::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
             }
         }
     }
+
+    /**
+     * Extract instructions from the XML source
+     * @return array Array of instructions
+     */
     protected function extractInstructions(): array
     {
         $xpath = new DOMXPath($this->dom);
@@ -86,6 +105,12 @@ class XMLAnalyzer
 
         return $instructionsData;
     }
+
+    /**
+     * Extract arguments from an instruction node
+     * @param \DOMElement $instruction Instruction node
+     * @return array Array of arguments
+     */
     protected function extractArgs(\DOMElement $instruction): array
     {
         $args = [];

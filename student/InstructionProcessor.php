@@ -130,6 +130,8 @@ class InstructionProcessor
                 return $this->handleStrlen($instruction['args']);
             case 'GETCHAR':
                 return $this->handleGetchar($instruction['args']);
+            case 'SETCHAR':
+                return $this->handleSetchar($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
@@ -146,7 +148,6 @@ class InstructionProcessor
         switch ($arg['dataType']) {
             case 'var':
                 return $this->getVariableValue($arg['value']);
-                break;
             case 'int':
                 return (int)$arg['value'];
             case 'bool':
@@ -156,7 +157,6 @@ class InstructionProcessor
                 return (float)$arg['value'];
             case 'nil':
                 return '';
-                break;
             default:
                 return $arg['value'];
         }
@@ -856,16 +856,47 @@ class InstructionProcessor
         $varName = $args[0]['value'];
         $stringValue = $this->determineValue($args[1]);
         $indexValue = $this->determineValue($args[2]);
-        
+
         if (!is_string($stringValue) || !is_int($indexValue)) {
             HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-            return;
+            return null;
         }
 
         HelperFunctions::checkIndex($stringValue, $indexValue);
 
         $result = mb_substr($stringValue, $indexValue, 1, "UTF-8");
         $this->setVariableValue($varName, $result);
+
+        return null;
+    }
+
+    /**
+     * Handling SETCHAR instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleSetchar(array $args)
+    {
+        HelperFunctions::CheckArgs($args, 3);
+
+        $varName = $this->getVariableValue($args[0]['value']);
+        $position = $this->determineValue($args[1]);
+        $replacement = $this->determineValue($args[2]);
+
+        if (!is_string($varName) || !is_int($position) || !is_string($replacement) || $replacement === '') {
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            return null;
+        }
+
+        HelperFunctions::checkIndex($varName, $position);
+
+        //take first symbol from string if there is > 1
+        $charToInsert = mb_substr($replacement, 0, 1, "UTF-8");
+        $result = mb_substr($varName, 0, $position, "UTF-8") . $charToInsert . mb_substr($varName, $position + 1, mb_strlen($varName, "UTF-8") - $position - 1, "UTF-8");
+
+        $this->setVariableValue($args[0]['value'], $result);
 
         return null;
     }

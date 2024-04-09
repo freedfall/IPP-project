@@ -42,6 +42,10 @@ class InstructionProcessor
      * @var array<mixed>|null Temporary frame, can be null if not currently defined
      */
     protected ?array $tempFrame = null;
+    /**
+     * @var array<mixed> Associative array where keys are label names and values are instruction indices
+     */
+    protected array $dataStack = [];
 
     public int $instructionIndex = 0;
     public bool $indexModified = false;
@@ -74,6 +78,10 @@ class InstructionProcessor
                 return $this->handleReturn();
             case 'LABEL':
                 return $this->handleLabel($instruction['args']);
+            case 'PUSHS':
+                return $this->handlePushs($instruction['args']);
+            case 'POPS':
+                return $this->handlePops($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
@@ -286,7 +294,7 @@ class InstructionProcessor
      * 
      * @param array<mixed> $args Array of arguments
      * @return null
-     * @throws \Exception If the call stack is empty
+     * @throws \Exception If the label already exists
      */
     protected function handleLabel(array $args)
     {
@@ -295,6 +303,38 @@ class InstructionProcessor
             ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
         $this->labels[$labelName] = $this->instructionIndex;
+
+        return null;
+    }
+
+    /**
+     * Handling LABEL instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     */
+    protected function handlePushs(array $args)
+    {
+        $value = $this->determineValue($args[0]);
+        array_push($this->dataStack, $value);
+        return null;
+    }
+
+    /**
+     * Handling LABEL instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If the data stack is empty
+     */
+    protected function handlePops(array $args)
+    {
+        if (empty($this->dataStack)) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+        
+        $value = array_pop($this->dataStack);
+        $this->setVariableValue($args[0]['value'], $value);
 
         return null;
     }

@@ -96,6 +96,12 @@ class InstructionProcessor
                 return $this->handleGt($instruction['args']);
             case 'EQ':
                 return $this->handleEq($instruction['args']);
+            case 'AND':
+                return $this->handleAnd($instruction['args']);
+            case 'OR':
+                return $this->handleOr($instruction['args']);
+            case 'NOT':
+                return $this->handleNot($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
@@ -116,14 +122,16 @@ class InstructionProcessor
             $value = $arg['value'];
         }
 
-        if ($arg['dataType'] === 'int') {
-            return (int)$value;
-        }
-        elseif ($arg['dataType'] === 'float') {
-            return (float)$value;
+        switch ($arg['dataType']) {
+            case 'int':
+                return (int)$value;
+            case 'bool':
+                // convert string to boolean (every string except 'true' is false)
+                return $value === 'true' ? true : false;
+            case 'float':
+                return (float)$value;
         }
         
-
         return $value;
     }
 
@@ -480,7 +488,7 @@ class InstructionProcessor
      * @param mixed $value1 First value
      * @param mixed $value2 Second value
      * @param string $operator Comparison operator (LT, GT, EQ)
-     * @return null
+     * @return bool
      * @throws \Exception If the data stack is empty
      */
     protected function compareValues($value1, $value2, string $operator): bool
@@ -508,9 +516,9 @@ class InstructionProcessor
      * @param array<mixed> $args Array of arguments
      * @return null
      */
-    protected function handleLt(array $args): void
+    protected function handleLt(array $args)
     {
-        $this->handleComparison($args, 'LT');
+        return $this->handleComparison($args, 'LT');
     }
 
     /**
@@ -519,9 +527,9 @@ class InstructionProcessor
      * @param array<mixed> $args Array of arguments
      * @return null
      */
-    protected function handleGt(array $args): void
+    protected function handleGt(array $args)
     {
-        $this->handleComparison($args, 'GT');
+        return $this->handleComparison($args, 'GT');
     }
 
     /**
@@ -541,12 +549,12 @@ class InstructionProcessor
      * @param array<mixed> $args Array of arguments
      * @param string $operator Comparison operator (LT, GT, EQ)
      * @return null
-     * @throws \Exception If the data stack is empty
+     * @throws \Exception If arguments are invalid
      */
     protected function handleComparison(array $args, string $operator)
     {
         if (count($args) != 3) {
-            throw new \Exception("$operator requires exactly three arguments.");
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
 
         $varName = $args[0]['value'];
@@ -554,7 +562,7 @@ class InstructionProcessor
         $symb2Value = $this->determineValue($args[2]);
 
         if ($symb1Value === null || $symb2Value === null) {
-            if ($operator !== 'EQ' || ($symb1Value !== null && $symb2Value !== null)) {
+            if ($operator !== 'EQ' || ($symb1Value !== null || $symb2Value !== null)) {
                 ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
             }
         }
@@ -562,6 +570,83 @@ class InstructionProcessor
         $result = $this->compareValues($symb1Value, $symb2Value, $operator);
         $this->setVariableValue($varName, $result);
         print($result);
+
+        return null;
+    }
+
+    /**
+     * Handling AND instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleAnd(array $args)
+    {
+        if (count($args) != 3) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        $varName = $args[0]['value'];
+        $symb1Value = $this->determineValue($args[1]);
+        $symb2Value = $this->determineValue($args[2]);
+        if (!is_bool($symb1Value) || !is_bool($symb2Value)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
+
+        $result = $symb1Value && $symb2Value;
+        $this->setVariableValue($varName, $result);
+
+        return null;
+    }
+
+    /**
+     * Handling OR instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleOr(array $args)
+    {
+        if (count($args) != 3) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        $varName = $args[0]['value'];
+        $symb1Value = $this->determineValue($args[1]);
+        $symb2Value = $this->determineValue($args[2]);
+        if (!is_bool($symb1Value) || !is_bool($symb2Value)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
+
+        $result = $symb1Value || $symb2Value;
+        $this->setVariableValue($varName, $result);
+
+        return null;
+    }
+
+    /**
+     * Handling NOT instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleNot(array $args)
+    {
+        if (count($args) != 2) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        $varName = $args[0]['value'];
+        $symb1Value = $this->determineValue($args[1]);
+        if (!is_bool($symb1Value)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
+
+        $result = !$symb1Value;
+        $this->setVariableValue($varName, $result);
 
         return null;
     }

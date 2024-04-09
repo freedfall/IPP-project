@@ -128,6 +128,8 @@ class InstructionProcessor
                 return $this->handleConcat($instruction['args']);
             case 'STRLEN':
                 return $this->handleStrlen($instruction['args']);
+            case 'GETCHAR':
+                return $this->handleGetchar($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
@@ -835,6 +837,34 @@ class InstructionProcessor
         $stringValue = $this->determineValue($args[1]);
 
         $result = mb_strlen($stringValue, "UTF-8");
+        $this->setVariableValue($varName, $result);
+
+        return null;
+    }
+
+    /**
+     * Handling GETCHAR instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleGetchar(array $args)
+    {
+        HelperFunctions::CheckArgs($args, 3);
+
+        $varName = $args[0]['value'];
+        $stringValue = $this->determineValue($args[1]);
+        $indexValue = $this->determineValue($args[2]);
+        
+        if (!is_string($stringValue) || !is_int($indexValue)) {
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            return;
+        }
+
+        HelperFunctions::checkIndex($stringValue, $indexValue);
+
+        $result = mb_substr($stringValue, $indexValue, 1, "UTF-8");
         $this->setVariableValue($varName, $result);
 
         return null;

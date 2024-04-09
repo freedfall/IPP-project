@@ -99,4 +99,18 @@ class HelperFunctions {
             self::handleException(ReturnCode::SEMANTIC_ERROR);
         }
     }
+
+    /**
+     * Function for checking if index is in string range
+     * @param string $string 
+     * @param int $index
+     * @throws \Exception - if the data type is not supported
+     */
+    public static function checkIndex(string $string, int $index): void
+    {
+        if ($index < 0 || $index >= mb_strlen($string, "UTF-8")) {
+            self::handleException(ReturnCode::STRING_OPERATION_ERROR);
+            return;
+        }
+    }
 }

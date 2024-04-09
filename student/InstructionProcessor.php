@@ -102,6 +102,10 @@ class InstructionProcessor
                 return $this->handleOr($instruction['args']);
             case 'NOT':
                 return $this->handleNot($instruction['args']);
+            case 'INT2CHAR':
+                return $this->handleInt2Char($instruction['args']);
+            case 'STRI2INT':
+                return $this->handleStri2Int($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
@@ -651,4 +655,67 @@ class InstructionProcessor
         return null;
     }
 
+    /**
+     * Handling INT2CHAR instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleInt2Char(array $args)
+    {
+        if (count($args) != 2) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        $varName = $args[0]['value'];
+        $symbValue = $this->determineValue($args[1]);
+
+        if (!is_int($symbValue)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
+
+        // Проверяем, является ли значение допустимым Unicode кодом символа
+        if ($symbValue < 0 || $symbValue > 0x10FFFF) {
+            ErrorHandler::handleException(ReturnCode::STRING_OPERATION_ERROR); // Используйте соответствующий код ошибки
+        }
+
+        $char = mb_chr($symbValue, 'UTF-8');
+        $this->setVariableValue($varName, $char);
+
+        return null;
+    }
+
+    /**
+     * Handling STR2INT instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleStri2Int(array $args)
+    {
+        if (count($args) != 3) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        $varName = $args[0]['value'];
+        $string = $this->determineValue($args[1]);
+        $position = $this->determineValue($args[2]);
+
+        if (!is_string($string) || !is_int($position)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
+
+        // Проверка на выход за пределы строки
+        if ($position < 0 || $position >= mb_strlen($string, 'UTF-8')) {
+            ErrorHandler::handleException(ReturnCode::STRING_OPERATION_ERROR); // Используйте соответствующий код ошибки
+        }
+
+        $char = mb_substr($string, $position, 1, 'UTF-8');
+        $ordValue = mb_ord($char, 'UTF-8');
+        $this->setVariableValue($varName, $ordValue);
+
+        return null;
+    }
 }

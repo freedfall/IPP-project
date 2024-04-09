@@ -99,7 +99,7 @@ class InstructionProcessor
      * Returns reference to the frame by its type
      * 
      * @param string $frameType Type of the frame
-     * @return array<mixed> Reference to the frame
+     * @return array<mixed>|null Reference to the frame
      * @throws \Exception If the frame type is invalid
      */
     protected function &getFrame($frameType) : ?array

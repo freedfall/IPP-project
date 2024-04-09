@@ -15,7 +15,7 @@ use IPP\Student\ErrorHandler;
 
 class XMLAnalyzer
 {
-    protected $dom;
+    protected DOMDocument $dom;
 
     public function __construct(DOMDocument $dom)
     {
@@ -24,7 +24,7 @@ class XMLAnalyzer
 
     /**
      * Analyze the XML source
-     * @return array Array of instructions
+     * @return array<mixed> Array of instructions
      */
     public function analyze(): array
     {
@@ -69,21 +69,25 @@ class XMLAnalyzer
 
         // check that each instruction has 'order' and 'opcode' attributes
         foreach ($instructions as $instruction) {
-            if (!$instruction->hasAttribute('order') || !$instruction->hasAttribute('opcode')) {
-                ErrorHandler::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
-            }
-
-            // check that 'order' attribute is a positive integer
-            $order = $instruction->getAttribute('order');
-            if (!filter_var($order, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]])) {
-                ErrorHandler::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+            if ($instruction instanceof \DOMElement) {
+                if (!$instruction->hasAttribute('order') || !$instruction->hasAttribute('opcode')) {
+                    ErrorHandler::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+                }
+        
+                // check that 'order' attribute is a positive integer
+                $order = $instruction->getAttribute('order');
+                if (!filter_var($order, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]])) {
+                    ErrorHandler::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+                }
+            } else {
+                ErrorHandler::handleException(ReturnCode::INPUT_FILE_ERROR);
             }
         }
     }
 
     /**
      * Extract instructions from the XML source
-     * @return array Array of instructions
+     * @return array<mixed> Array of instructions
      */
     protected function extractInstructions(): array
     {
@@ -92,15 +96,17 @@ class XMLAnalyzer
         $instructionsData = [];
 
         foreach ($instructionsNodes as $node) {
-            $opcode = $node->getAttribute('opcode');
-            $order = $node->getAttribute('order');
-            $args = $this->extractArgs($node);
-
-            $instructionsData[] = [
-                'order' => $order,
-                'opcode' => $opcode,
-                'args' => $args,
-            ];
+            if ($node instanceof \DOMElement) {
+                $opcode = $node->getAttribute('opcode');
+                $order = $node->getAttribute('order');
+                $args = $this->extractArgs($node);
+    
+                $instructionsData[] = [
+                    'order' => $order,
+                    'opcode' => $opcode,
+                    'args' => $args,
+                ];
+            }
         }
 
         return $instructionsData;
@@ -108,10 +114,10 @@ class XMLAnalyzer
 
     /**
      * Extract arguments from an instruction node
-     * @param \DOMElement $instruction Instruction node
-     * @return array Array of arguments
+     * @param \DOMNode $instruction Instruction node
+     * @return array<mixed> Array of arguments
      */
-    protected function extractArgs(\DOMElement $instruction): array
+    protected function extractArgs(\DOMNode $instruction): array
     {
         $args = [];
         foreach ($instruction->childNodes as $child) {

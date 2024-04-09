@@ -9,24 +9,25 @@ namespace IPP\Student;
 
 use IPP\Core\AbstractInterpreter;
 use IPP\Core\Exception\NotImplementedException;
+use IPP\Core\StreamWriter;
 use IPP\Student\InstructionProcessor;
 use IPP\Student\InstructionSorter;
-use IPP\Student\ResultOutputter;
-use IPP\Student\XMLSourceAnalyzer;
+use IPP\Student\XMLAnalyzer;
 
 class Interpreter extends AbstractInterpreter
 {
     public function execute(): int
     {
         //Intialize the source analyzer
-        $sourceAnalyzer = new XMLSourceAnalyzer($this->source->getDOMDocument());
+        $sourceAnalyzer = new XMLAnalyzer($this->source->getDOMDocument());
         $instructions = $sourceAnalyzer->analyze();
 
         $sorter = new InstructionSorter();
         $sortedInstructions = $sorter->sortInstructions($instructions);
 
         $processor = new InstructionProcessor();
-        $outputter = new ResultOutputter($this->stdout, $this->stderr);
+        $stdoutWriter = new StreamWriter(STDOUT);
+        $stderrWriter = new StreamWriter(STDERR);
 
         // Initialize instruction index
         $processor->instructionIndex = 0;
@@ -36,7 +37,7 @@ class Interpreter extends AbstractInterpreter
             $currentInstruction = $sortedInstructions[$processor->instructionIndex];
             $result = $processor->processInstruction($currentInstruction);
             if ($result !== null) {
-                $outputter->outputResult($result);
+                $stdoutWriter->writeString($result);
             }
 
             // Manually increment the instruction index if not modified by CALL or RETURN

@@ -10,6 +10,9 @@ namespace IPP\Student;
 use DOMElement;
 use IPP\Student\ErrorHandler;
 use IPP\Core\ReturnCode;
+use IPP\Core\FileInputReader;
+use IPP\Core\Interface\InputReader;
+use IPP\Student\HelperFunctions;
 
 /**
  * Class InstructionProcessor
@@ -47,9 +50,20 @@ class InstructionProcessor
      */
     protected array $dataStack = [];
 
+    
+
+    /**
+     * @var InputReader Input reader
+     */
+    protected InputReader $inputReader;
+
     public int $instructionIndex = 0;
     public bool $indexModified = false;
 
+
+    public function __construct(InputReader $inputReader){
+        $this->inputReader = $inputReader;
+    }
     /**
      * Processes the instruction.
      *
@@ -106,6 +120,10 @@ class InstructionProcessor
                 return $this->handleInt2Char($instruction['args']);
             case 'STRI2INT':
                 return $this->handleStri2Int($instruction['args']);
+            case 'READ':
+                return $this->handleRead($instruction['args']);
+            case 'WRITE':
+                return $this->handleWrite($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
@@ -127,13 +145,19 @@ class InstructionProcessor
         }
 
         switch ($arg['dataType']) {
+            case 'var':
+                $value = $this->getVariableValue($arg['value']);
+                break;
             case 'int':
-                return (int)$value;
+                return (int)$arg['value'];
             case 'bool':
                 // convert string to boolean (every string except 'true' is false)
-                return $value === 'true' ? true : false;
+                return $value === 'true' ? 'true' : 'false';
             case 'float':
-                return (float)$value;
+                return (float)$arg['value'];
+            case 'nil':
+                $value = '';
+                break;
         }
         
         return $value;
@@ -210,9 +234,7 @@ class InstructionProcessor
      */
      protected function handleMove(array $args): ?string
      {
-         if (count($args) != 2) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-         }
+         HelperFunctions::CheckArgs($args, 2);
  
          $targetVarName = $args[0]['value'];
          $sourceValue = $this->determineValue($args[1]);
@@ -717,5 +739,71 @@ class InstructionProcessor
         $this->setVariableValue($varName, $ordValue);
 
         return null;
+    }
+
+    /**
+     * Handling STR2INT instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleRead(array $args)
+    {
+        if (count($args) != 2) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        $varName = $args[0]['value'];
+        $type = $args[1]['value'];
+
+        // Инициализация значения переменной nil в случае ошибки чтения
+        $value = 'nil@nil';
+
+        // Чтение значения из входного потока в соответствии с типом
+        switch ($type) {
+            case 'int':
+                $readValue = $this->inputReader->readInt();
+                if ($readValue !== null) {
+                    $value = $readValue;
+                }
+                break;
+            case 'bool':
+                $readValue = $this->inputReader->readBool();
+                if ($readValue !== null) {
+                    $value = $readValue;
+                }
+                break;
+            case 'string':
+                $readValue = $this->inputReader->readString();
+                if ($readValue !== null) {
+                    $value = $readValue;
+                }
+                break;
+            default:
+                break;
+        }
+
+        $this->setVariableValue($varName, $value);
+
+        return null;
+    }
+
+    /**
+     * Handling STR2INT instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return string
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleWrite(array $args): string
+    {
+        if (count($args) != 1) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        $value = $this->determineValue($args[0]);
+
+        return $value;
     }
 }

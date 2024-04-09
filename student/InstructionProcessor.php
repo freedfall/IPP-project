@@ -86,6 +86,10 @@ class InstructionProcessor
                 return $this->handleAdd($instruction['args']);
             case 'SUB':
                 return $this->handleSub($instruction['args']);
+            case 'MUL':
+                return $this->handleMul($instruction['args']);
+            case 'IDIV':
+                return $this->handleIdiv($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
@@ -101,10 +105,16 @@ class InstructionProcessor
     {
         if ($arg['dataType'] === 'var') {
             // get the value of the variable
-            return $this->getVariableValue($arg['value']);
+            $value = $this->getVariableValue($arg['value']);
         } else {
-            return $arg['value'];
+            $value = $arg['value'];
         }
+
+        if ($arg['dataType'] === 'int') {
+            return (int)$value;
+        }
+
+        return $value;
     }
 
     /**
@@ -361,9 +371,9 @@ class InstructionProcessor
         $symb2Value = $this->determineValue($args[2]);
         
         //TODO: check how to compare data types cause now its autoconveting
-        // if (!is_int($symb1Value) || !is_int($symb2Value)) {
-        //     ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-        // }
+        if (!is_int($symb1Value) || !is_int($symb2Value)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
 
         $result = $symb1Value + $symb2Value;
         $this->setVariableValue($varName, $result);
@@ -387,12 +397,70 @@ class InstructionProcessor
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
 
-        // if (!is_int($symb1Value) || !is_int($symb2Value)) {
-        //     ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-        // }
+        if (!is_int($symb1Value) || !is_int($symb2Value)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
 
         $result = $symb1Value - $symb2Value;
         $this->setVariableValue($varName, $result);
+        return null;
+    }
+
+    /**
+     * Handling MUL instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If the data stack is empty
+     */
+    protected function handleMul(array $args)
+    {
+        if (count($args) != 3) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        $varName = $args[0]['value'];
+        $symb1Value = $this->determineValue($args[1]);
+        $symb2Value = $this->determineValue($args[2]);
+
+        if (!is_int($symb1Value) || !is_int($symb2Value)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
+
+        $result = $symb1Value * $symb2Value;
+        $this->setVariableValue($varName, $result);
+
+        return null;
+    }
+
+    /**
+     * Handling IDIV instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     * @throws \Exception If the data stack is empty
+     */
+    protected function handleIdiv(array $args)
+    {
+        if (count($args) != 3) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
+
+        $varName = $args[0]['value'];
+        $symb1Value = $this->determineValue($args[1]);
+        $symb2Value = $this->determineValue($args[2]);
+
+        if (!is_int($symb1Value) || !is_int($symb2Value)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
+
+        if ($symb2Value === 0) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_VALUE_ERROR);
+        }
+
+        $result = intdiv($symb1Value, $symb2Value);
+        $this->setVariableValue($varName, $result);
+
         return null;
     }
 }

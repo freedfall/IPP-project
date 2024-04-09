@@ -8,6 +8,8 @@
 namespace IPP\Student;
 
 use DOMElement;
+use IPP\Student\ErrorHandler;
+use IPP\Core\ReturnCode;
 
 /**
  * Class InstructionProcessor
@@ -21,6 +23,13 @@ class InstructionProcessor
     protected $frameStack = [];
     protected $callStack = [];
 
+    /**
+     * Processes the instruction
+     * 
+     * @param array $instruction Instruction to process
+     * @return string|null Result of the instruction
+     * @throws \Exception If the instruction is unknown
+     */
     public function processInstruction(array $instruction): ?string
     {
         switch (strtoupper($instruction['opcode'])) {
@@ -39,9 +48,10 @@ class InstructionProcessor
             case 'RETURN':
                 return $this->handleReturn();
             default:
-                throw new \Exception("Unknown instruction: " . $instruction['opcode']);
+                ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
     }
+
     /**
      * Determines the value of the argument
      * @param array $arg Argument
@@ -56,7 +66,8 @@ class InstructionProcessor
             return $arg['value'];
         }
     }
-        /**
+
+    /**
      * Returns reference to the frame by its type
      * 
      * @param string $frameType Type of the frame
@@ -75,10 +86,10 @@ class InstructionProcessor
                 if (!empty($this->frameStack)) {
                     return end($this->frameStack);
                 } else {
-                    throw new \Exception("Local frame stack is empty.");
+                    ErrorHandler::handleException(ReturnCode::FRAME_ACCESS_ERROR);
                 }
             default:
-                throw new \Exception("Invalid frame type: {$frameType}");
+                ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
     }
 
@@ -96,7 +107,7 @@ class InstructionProcessor
         if (isset($frame[$varName])) {
             return $frame[$varName];
         } else {
-            throw new \Exception("Variable {$fullVarName} not found.");
+            ErrorHandler::handleException(ReturnCode::VARIABLE_ACCESS_ERROR);
         }
     }
 
@@ -122,11 +133,10 @@ class InstructionProcessor
      * @return null
      * @throws \Exception If the number of arguments is not 2
      */
-
      protected function handleMove(array $args): ?string
      {
          if (count($args) != 2) {
-             throw new \Exception("MOVE requires exactly two arguments.");
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
          }
  
          $targetVarName = $args[0]['value'];
@@ -136,6 +146,7 @@ class InstructionProcessor
  
          return null;
      }
+
     /**
      * Handling CREATEFRAME instruction
      * @return null
@@ -152,7 +163,7 @@ class InstructionProcessor
     protected function handlePushFrame(): ?string
     {
         if ($this->tempFrame === null) {
-            throw new \Exception("Temporary frame not defined", 55);
+            ErrorHandler::handleException(ReturnCode::FRAME_ACCESS_ERROR);
         }
         array_push($this->frameStack, $this->tempFrame); // Put TF on the stack
         $this->tempFrame = null; // clear TF
@@ -165,7 +176,7 @@ class InstructionProcessor
     protected function handlePopFrame(): ?string
     {
         if (empty($this->frameStack)) {
-            throw new \Exception("Frame stack is empty", 55);
+            ErrorHandler::handleException(ReturnCode::FRAME_ACCESS_ERROR);
         }
         $this->tempFrame = array_pop($this->frameStack); // Put TF from the stack to TF
     }
@@ -188,7 +199,7 @@ class InstructionProcessor
         $frame = &$this->getFrame($frameType);
 
         if (array_key_exists($varName, $frame)) {
-            throw new \Exception("Variable {$fullVarName} already defined.");
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
 
         // New variable is created with value NULL and without type
@@ -218,7 +229,7 @@ class InstructionProcessor
     protected function handleReturn(): ?string
     {
         if (empty($this->callStack)) {
-            throw new \Exception("Call stack is empty", 56);
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
     }
 }

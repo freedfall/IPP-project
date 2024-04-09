@@ -90,6 +90,12 @@ class InstructionProcessor
                 return $this->handleMul($instruction['args']);
             case 'IDIV':
                 return $this->handleIdiv($instruction['args']);
+            case 'LT':
+                return $this->handleLt($instruction['args']);
+            case 'GT':
+                return $this->handleGt($instruction['args']);
+            case 'EQ':
+                return $this->handleEq($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
@@ -113,6 +119,10 @@ class InstructionProcessor
         if ($arg['dataType'] === 'int') {
             return (int)$value;
         }
+        elseif ($arg['dataType'] === 'float') {
+            return (float)$value;
+        }
+        
 
         return $value;
     }
@@ -443,7 +453,7 @@ class InstructionProcessor
     protected function handleIdiv(array $args)
     {
         if (count($args) != 3) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
 
         $varName = $args[0]['value'];
@@ -463,4 +473,97 @@ class InstructionProcessor
 
         return null;
     }
+
+    /**
+     * Helper function for comparing two values
+     * 
+     * @param mixed $value1 First value
+     * @param mixed $value2 Second value
+     * @param string $operator Comparison operator (LT, GT, EQ)
+     * @return null
+     * @throws \Exception If the data stack is empty
+     */
+    protected function compareValues($value1, $value2, string $operator): bool
+    {
+        if (gettype($value1) !== gettype($value2)) {
+            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        }
+
+        switch ($operator) {
+            case 'LT':
+                return $value1 < $value2;
+            case 'GT':
+                return $value1 > $value2;
+            case 'EQ':
+                return $value1 === $value2;
+            default:
+                ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+                return false;
+        }
+    }   
+
+    /**
+     * Handling LT instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     */
+    protected function handleLt(array $args): void
+    {
+        $this->handleComparison($args, 'LT');
+    }
+
+    /**
+     * Handling GT instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     */
+    protected function handleGt(array $args): void
+    {
+        $this->handleComparison($args, 'GT');
+    }
+
+    /**
+     * Handling EQ instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return null
+     */
+    protected function handleEq(array $args)
+    {
+        return $this->handleComparison($args, 'EQ');
+    }
+
+    /**
+     * Helper function for handling comparison instructions
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @param string $operator Comparison operator (LT, GT, EQ)
+     * @return null
+     * @throws \Exception If the data stack is empty
+     */
+    protected function handleComparison(array $args, string $operator)
+    {
+        if (count($args) != 3) {
+            throw new \Exception("$operator requires exactly three arguments.");
+        }
+
+        $varName = $args[0]['value'];
+        $symb1Value = $this->determineValue($args[1]);
+        $symb2Value = $this->determineValue($args[2]);
+
+        if ($symb1Value === null || $symb2Value === null) {
+            if ($operator !== 'EQ' || ($symb1Value !== null && $symb2Value !== null)) {
+                ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            }
+        }
+
+        $result = $this->compareValues($symb1Value, $symb2Value, $operator);
+        $this->setVariableValue($varName, $result);
+        print($result);
+
+        return null;
+    }
+
 }

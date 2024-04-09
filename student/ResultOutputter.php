@@ -5,7 +5,7 @@
  * @author Timur Kininbayev (xkinin00)
  * 
  */
-namespace IPP\Student\Output;
+namespace IPP\Student;
 
 class ResultOutputter
 {
@@ -21,6 +21,7 @@ class ResultOutputter
     public function outputResult(string $result): void
     {
         // Output result
+        $this->stdout = $result;
     }
 
     public function outputError(string $error): void

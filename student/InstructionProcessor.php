@@ -22,6 +22,9 @@ class InstructionProcessor
     protected $tempFrame = null;
     protected $frameStack = [];
     protected $callStack = [];
+    protected $labels = [];
+    protected $instructionIndex = 0;
+    protected $indexModified = false;
 
     /**
      * Processes the instruction
@@ -32,6 +35,7 @@ class InstructionProcessor
      */
     public function processInstruction(array $instruction): ?string
     {
+        $this->instructionIndex = $instruction['order'];
         switch (strtoupper($instruction['opcode'])) {
             case 'MOVE':
                 return $this->handleMove($instruction['args']);
@@ -47,6 +51,8 @@ class InstructionProcessor
                 return $this->handleCall($instruction['args']);
             case 'RETURN':
                 return $this->handleReturn();
+            case 'LABEL':
+                return $this->handleLabel($instruction['args']);
             default:
                 ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
@@ -217,7 +223,15 @@ class InstructionProcessor
      */
     protected function handleCall(array $args): ?string
     {
-        array_push($this->callStack, /* текущая позиция + 1 */);
+        $label = $args[0]['value'];
+        if (!array_key_exists($label, $this->labels)) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        array_push($this->callStack, $this->instructionIndex + 1);
+        $this->instructionIndex = $this->labels[$label];
+        $this->indexModified = true;
+        return null;
     }
     
     /**
@@ -231,5 +245,15 @@ class InstructionProcessor
         if (empty($this->callStack)) {
             ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
         }
+        $this->instructionIndex = array_pop($this->callStack);
+        $this->indexModified = true;
+    }
+    protected function handleLabel(array $args): ?string
+    {
+        $labelName = $args[0]['value'];
+        if (array_key_exists($labelName, $this->labels)) {
+            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+        $this->labels[$labelName] = $this->instructionIndex;
     }
 }

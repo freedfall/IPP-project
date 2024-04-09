@@ -28,12 +28,23 @@ class Interpreter extends AbstractInterpreter
         $processor = new InstructionProcessor();
         $outputter = new ResultOutputter($this->stdout, $this->stderr);
 
-        //Handle each instruction
-        foreach ($sortedInstructions as $instruction) {
-            $result = $processor->processInstruction($instruction);
+        // Initialize instruction index
+        $processor->instructionIndex = 0;
+
+        // Handle each instruction according to the instruction index
+        while ($processor->instructionIndex < count($sortedInstructions)) {
+            $currentInstruction = $sortedInstructions[$processor->instructionIndex];
+            $result = $processor->processInstruction($currentInstruction);
             if ($result !== null) {
                 $outputter->outputResult($result);
             }
+
+            // Manually increment the instruction index if not modified by CALL or RETURN
+            if (!$processor->indexModified) {
+                $processor->instructionIndex++;
+            }
+            // Reset index modification flag for the next iteration
+            $processor->indexModified = false;
         }
 
         return 0; // Success

@@ -78,10 +78,10 @@ class HelperFunctions {
             return "float";
         } elseif (is_bool($var)) {
             return "bool";
+        } elseif ($var === "nil@nil") {
+            return "nil";
         } elseif (is_string($var)) {
             return "string";
-        } elseif (is_null($var)) {
-            return "nil";
         } else {
             throw new \Exception("Unsupported data type");
         }

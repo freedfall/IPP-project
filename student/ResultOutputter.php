@@ -7,25 +7,67 @@
  */
 namespace IPP\Student;
 
+use IPP\Core\StreamWriter;
+use IPP\Student\HelperFunctions;
+
 class ResultOutputter
 {
-    protected $stdout;
-    protected $stderr;
+    protected StreamWriter $stdout;
+    protected StreamWriter $stderr;
 
-    public function __construct($stdout, $stderr)
+    /**
+     * @param StreamWriter $stdoutWritter Standard output stream
+     */
+    public function __construct(StreamWriter $stdoutWriter, StreamWriter $stderrWriter)
     {
-        $this->stdout = $stdout;
-        $this->stderr = $stderr;
+        $this->stdout = $stdoutWriter;
+        $this->stderr = $stderrWriter;
     }
 
-    public function outputResult(string $result): void
+    public function outputResult(mixed $result): void
     {
         // Output result
-        $this->stdout = $result;
+        $result_type = HelperFunctions::getDataType($result);
+        // print($result);
+        // print("\n");
+        // print($result_type);
+        // print("\n");
+            switch ($result_type){
+                case 'bool':
+                    $this->stdout->writeBool($result);
+                    break;
+                case 'int':
+                    $this->stdout->writeInt((int)$result);
+                    break;
+                case 'nil':
+                    $this->stdout->writeString("");
+                    break;
+                case 'float':
+                    $this->stdout->writeFloat((float)$result);
+                    break;
+                default:
+                    $this->stdout->writeString($result);
+            }
     }
-
-    public function outputError(string $error): void
+    public function outputError(mixed $result): void
     {
-        // Output error
+        // Output result
+        $result_type = HelperFunctions::getDataType($result);
+            switch ($result_type){
+                case 'bool':
+                    $this->stdout->writeBool($result);
+                    break;
+                case 'int':
+                    $this->stdout->writeInt((int)$result);
+                    break;
+                case 'nil':
+                    $this->stdout->writeString("");
+                    break;
+                case 'float':
+                    $this->stdout->writeFloat((float)$result);
+                    break;
+                default:
+                    $this->stdout->writeString($result);
+            }
     }
 }

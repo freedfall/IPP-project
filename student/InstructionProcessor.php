@@ -8,11 +8,9 @@
 namespace IPP\Student;
 
 use DOMElement;
-use IPP\Student\ErrorHandler;
 use IPP\Core\ReturnCode;
 use IPP\Core\FileInputReader;
 use IPP\Core\Interface\InputReader;
-use IPP\Student\HelperFunctions;
 
 /**
  * Class InstructionProcessor
@@ -50,19 +48,23 @@ class InstructionProcessor
      */
     protected array $dataStack = [];
 
-    
-
     /**
      * @var InputReader Input reader
      */
     protected InputReader $inputReader;
 
+    /**
+     * @var ResultOutputter Result Outputter
+     */
+    protected ResultOutputter $resultOutputter;
+
     public int $instructionIndex = 0;
     public bool $indexModified = false;
 
 
-    public function __construct(InputReader $inputReader){
+    public function __construct(InputReader $inputReader, ResultOutputter $resultOutputter){
         $this->inputReader = $inputReader;
+        $this->resultOutputter = $resultOutputter;
     }
     /**
      * Processes the instruction.
@@ -70,75 +72,112 @@ class InstructionProcessor
      * @param array{opcode: string, args: array<mixed>} $instruction Instruction to process, where:
      *        - 'opcode' is the operation code (string) of the instruction,
      *        - 'args' is an array of arguments for the instruction. The type of each argument can vary, hence 'mixed'.
-     * @return string|null Result of the instruction or null if the instruction does not produce output.
      * @throws \Exception If the instruction is unknown or an error occurs.
      */
-    public function processInstruction(array $instruction): mixed
+    public function processInstruction(array $instruction): void
     {
+
         switch (strtoupper($instruction['opcode'])) {
             case 'MOVE':
-                return $this->handleMove($instruction['args']);
+                $this->handleMove($instruction['args']);
+                break;
             case 'CREATEFRAME':
-                return $this->handleCreateFrame();
+                $this->handleCreateFrame();
+                break;
             case 'PUSHFRAME':
-                return $this->handlePushFrame();
+                $this->handlePushFrame();
+                break;
             case 'POPFRAME':
-                return $this->handlePopFrame();
+                $this->handlePopFrame();
+                break;
             case 'DEFVAR':
-                return $this->handleDefvar($instruction['args']);
+                $this->handleDefvar($instruction['args']);
+                break;
             case 'CALL':
-                return $this->handleCall($instruction['args']);
+                $this->handleCall($instruction['args']);
+                break;
             case 'RETURN':
-                return $this->handleReturn();
+                $this->handleReturn();
+                break;
             case 'LABEL':
-                return null;
+                break;
             case 'PUSHS':
-                return $this->handlePushs($instruction['args']);
+                $this->handlePushs($instruction['args']);
+                break;
             case 'POPS':
-                return $this->handlePops($instruction['args']);
+                $this->handlePops($instruction['args']);
+                break;
             case 'ADD':
-                return $this->handleAdd($instruction['args']);
+                $this->handleAdd($instruction['args']);
+                break;
             case 'SUB':
-                return $this->handleSub($instruction['args']);
+                $this->handleSub($instruction['args']);
+                break;
             case 'MUL':
-                return $this->handleMul($instruction['args']);
+                $this->handleMul($instruction['args']);
+                break;
             case 'IDIV':
-                return $this->handleIdiv($instruction['args']);
+                $this->handleIdiv($instruction['args']);
+                break;
             case 'LT':
-                return $this->handleLt($instruction['args']);
+                $this->handleComparison($instruction['args'], 'LT');
+                break;
             case 'GT':
-                return $this->handleGt($instruction['args']);
+                $this->handleComparison($instruction['args'], 'GT');
+                break;
             case 'EQ':
-                return $this->handleEq($instruction['args']);
+                $this->handleComparison($instruction['args'], 'EQ');
+                break;
             case 'AND':
-                return $this->handleAnd($instruction['args']);
+                $this->handleAnd($instruction['args']);
+                break;
             case 'OR':
-                return $this->handleOr($instruction['args']);
+                $this->handleOr($instruction['args']);
+                break;
             case 'NOT':
-                return $this->handleNot($instruction['args']);
+                $this->handleNot($instruction['args']);
+                break;
             case 'INT2CHAR':
-                return $this->handleInt2Char($instruction['args']);
+                $this->handleInt2Char($instruction['args']);
+                break;
             case 'STRI2INT':
-                return $this->handleStri2Int($instruction['args']);
+                $this->handleStri2Int($instruction['args']);
+                break;
             case 'READ':
-                return $this->handleRead($instruction['args']);
+                $this->handleRead($instruction['args']);
+                break;
             case 'WRITE':
-                return $this->handleWrite($instruction['args']);
+                $this->handleWrite($instruction['args']);
+                break;
             case 'CONCAT':
-                return $this->handleConcat($instruction['args']);
+                $this->handleConcat($instruction['args']);
+                break;
             case 'STRLEN':
-                return $this->handleStrlen($instruction['args']);
+                $this->handleStrlen($instruction['args']);
+                break;
             case 'GETCHAR':
-                return $this->handleGetchar($instruction['args']);
+                $this->handleGetchar($instruction['args']);
+                break;
             case 'SETCHAR':
-                return $this->handleSetchar($instruction['args']);
+                $this->handleSetchar($instruction['args']);
+                break;
             case 'TYPE':
-                return $this->handleType($instruction['args']);
+                $this->handleType($instruction['args']);
+                break;
             case 'JUMP':
-                return $this->handleJump($instruction['args']);
+                $this->handleJump($instruction['args']);
+                break;
+            case 'JUMPIFEQ':
+                $this->handleJumpifeq($instruction['args']);
+                break;
+            case 'JUMPIFNEQ':
+                $this->handleJumpifneq($instruction['args']);
+                break;
+            case 'EXIT':
+                $this->handleExit($instruction['args']);
+                break;
             default:
-                ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-                return null;
+                HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
     }
     /**
@@ -202,11 +241,11 @@ class InstructionProcessor
                 if (!empty($this->frameStack)) {
                     return end($this->frameStack);
                 } else {
-                    ErrorHandler::handleException(ReturnCode::FRAME_ACCESS_ERROR);
+                    HelperFunctions::handleException(ReturnCode::FRAME_ACCESS_ERROR);
                     return null;
                 }
             default:
-                ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+                HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
                 return null;
         }
     }
@@ -225,7 +264,7 @@ class InstructionProcessor
         if (isset($frame[$varName])) {
             return $frame[$varName];
         } else {
-            ErrorHandler::handleException(ReturnCode::VARIABLE_ACCESS_ERROR);
+            HelperFunctions::handleException(ReturnCode::VARIABLE_ACCESS_ERROR);
             return null;
         }
     }
@@ -249,10 +288,10 @@ class InstructionProcessor
     /**
      * Handling MOVE instruction
      * @param array<mixed> $args Arguments of the instruction
-     * @return null
+     * @return void
      * @throws \Exception If the number of arguments is not 2
      */
-     protected function handleMove(array $args): ?string
+     protected function handleMove(array $args): void
      {
          HelperFunctions::CheckArgs($args, 2);
  
@@ -260,57 +299,50 @@ class InstructionProcessor
          $sourceValue = $this->determineValue($args[1]);
  
          $this->setVariableValue($targetVarName, $sourceValue);
- 
-         return null;
      }
 
     /**
      * Handling CREATEFRAME instruction
-     * @return null
+     * @return void
      */
     protected function handleCreateFrame()
     {
         $this->tempFrame = []; // create new TF
-        return null;
     }
 
     /**
      * Handling PUSHFRAME instruction
-     * @return null
+     * @return void
      */
     protected function handlePushFrame()
     {
         if ($this->tempFrame === null) {
-            ErrorHandler::handleException(ReturnCode::FRAME_ACCESS_ERROR);
+            HelperFunctions::handleException(ReturnCode::FRAME_ACCESS_ERROR);
         }
         array_push($this->frameStack, $this->tempFrame); // Put TF on the stack
         $this->tempFrame = null; // clear TF
-
-        return null;
     }
 
     /**
      * Handling POPFRAME instruction
-     * @return null
+     * @return void
      */
     protected function handlePopFrame()
     {
         if (empty($this->frameStack)) {
-            ErrorHandler::handleException(ReturnCode::FRAME_ACCESS_ERROR);
+            HelperFunctions::handleException(ReturnCode::FRAME_ACCESS_ERROR);
         }
         $this->tempFrame = array_pop($this->frameStack); // Put TF from the stack to TF
-
-        return null;
     }
 
     /**
      * Handling DEFVAR instruction
      * 
      * @param array<mixed> $args Arguments of the instruction
-     * @return null 
+     * @return void
      * @throws \Exception If the number of arguments is not 1
      */
-    protected function handleDefvar(array $args): ?string
+    protected function handleDefvar(array $args) : void
     {
         HelperFunctions::CheckArgs($args, 1);
 
@@ -319,81 +351,59 @@ class InstructionProcessor
         $frame = &$this->getFrame($frameType);
 
         if (array_key_exists($varName, $frame)) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
 
         // New variable is created with value NULL and without type
         $frame[$varName] = null;
 
         print_r($frame);
-        return null;
     }
 
     /**
      * Handling CALL instruction
      * 
      * @param array<mixed> $args Arguments of the instruction
-     * @return null
+     * @return void
      */
-    protected function handleCall(array $args): ?string
+    protected function handleCall(array $args) : void
     {
         $label = $args[0]['value'];
         if (!array_key_exists($label, $this->labels)) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
 
         array_push($this->callStack, $this->instructionIndex + 1);
         $this->instructionIndex = $this->labels[$label];
         $this->indexModified = true;
-        return null;
     }
     
     /**
      * Handling RETURN instruction
      * 
-     * @return null
+     * @return void
      * @throws \Exception If the call stack is empty
      */
-    protected function handleReturn()
+    protected function handleReturn() : void
     {
         if (empty($this->callStack)) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
         $this->instructionIndex = array_pop($this->callStack);
         $this->indexModified = true;
 
-        return null;
-    }
-
-    /**
-     * Handling LABEL instruction
-     * 
-     * @param array<mixed> $args Array of arguments
-     * @return null
-     * @throws \Exception If the label already exists
-     */
-    protected function handleLabel(array $args)
-    {
-        $labelName = $args[0]['value'];
-        if (array_key_exists($labelName, $this->labels)) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
-        $this->labels[$labelName] = $this->instructionIndex;
-
-        return null;
     }
 
     /**
      * Handling PUSHS instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      */
-    protected function handlePushs(array $args)
+    protected function handlePushs(array $args) : void
     {
         $value = $this->determineValue($args[0]);
         array_push($this->dataStack, $value);
-        return null;
     }
 
     /**
@@ -403,26 +413,25 @@ class InstructionProcessor
      * @return null
      * @throws \Exception If the data stack is empty
      */
-    protected function handlePops(array $args)
+    protected function handlePops(array $args) : void
     {
         if (empty($this->dataStack)) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
         
         $value = array_pop($this->dataStack);
         $this->setVariableValue($args[0]['value'], $value);
 
-        return null;
     }
 
     /**
      * Handling ADD instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If the data stack is empty
      */
-    protected function handleAdd(array $args)
+    protected function handleAdd(array $args) : void
     {
         HelperFunctions::CheckArgs($args, 3);
 
@@ -432,96 +441,87 @@ class InstructionProcessor
         
         //TODO: check how to compare data types cause now its autoconveting
         if (!is_int($symb1Value) || !is_int($symb2Value)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
         $result = $symb1Value + $symb2Value;
         $this->setVariableValue($varName, $result);
-        return null;
     }
 
     /**
      * Handling SUB instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If the data stack is empty
      */
-    protected function handleSub(array $args)
+    protected function handleSub(array $args) : void
     {
-        if (count($args) != 3) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 3);
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
 
         if (!is_int($symb1Value) || !is_int($symb2Value)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
         $result = $symb1Value - $symb2Value;
         $this->setVariableValue($varName, $result);
-        return null;
     }
 
     /**
      * Handling MUL instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If the data stack is empty
      */
-    protected function handleMul(array $args)
+    protected function handleMul(array $args) : void
     {
-        if (count($args) != 3) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 3);
+
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
 
         if (!is_int($symb1Value) || !is_int($symb2Value)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
         $result = $symb1Value * $symb2Value;
         $this->setVariableValue($varName, $result);
 
-        return null;
     }
 
     /**
      * Handling IDIV instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If the data stack is empty
      */
-    protected function handleIdiv(array $args)
+    protected function handleIdiv(array $args) : void
     {
-        if (count($args) != 3) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 3);
+
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
 
         if (!is_int($symb1Value) || !is_int($symb2Value)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
         if ($symb2Value === 0) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_VALUE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_VALUE_ERROR);
         }
 
         $result = intdiv($symb1Value, $symb2Value);
         $this->setVariableValue($varName, $result);
-
-        return null;
     }
 
     /**
@@ -536,7 +536,7 @@ class InstructionProcessor
     protected function compareValues($value1, $value2, string $operator): bool
     {
         if (gettype($value1) !== gettype($value2)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
         switch ($operator) {
@@ -547,57 +547,22 @@ class InstructionProcessor
             case 'EQ':
                 return $value1 === $value2;
             default:
-                ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+                HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
                 return false;
         }
     }   
-
-    /**
-     * Handling LT instruction
-     * 
-     * @param array<mixed> $args Array of arguments
-     * @return null
-     */
-    protected function handleLt(array $args)
-    {
-        return $this->handleComparison($args, 'LT');
-    }
-
-    /**
-     * Handling GT instruction
-     * 
-     * @param array<mixed> $args Array of arguments
-     * @return null
-     */
-    protected function handleGt(array $args)
-    {
-        return $this->handleComparison($args, 'GT');
-    }
-
-    /**
-     * Handling EQ instruction
-     * 
-     * @param array<mixed> $args Array of arguments
-     * @return null
-     */
-    protected function handleEq(array $args)
-    {
-        return $this->handleComparison($args, 'EQ');
-    }
 
     /**
      * Helper function for handling comparison instructions
      * 
      * @param array<mixed> $args Array of arguments
      * @param string $operator Comparison operator (LT, GT, EQ)
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleComparison(array $args, string $operator)
+    protected function handleComparison(array $args, string $operator) : void
     {
-        if (count($args) != 3) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 3);
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
@@ -605,169 +570,152 @@ class InstructionProcessor
 
         if ($symb1Value === null || $symb2Value === null) {
             if ($operator !== 'EQ' || ($symb1Value !== null || $symb2Value !== null)) {
-                ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+                HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
             }
         }
 
         $result = $this->compareValues($symb1Value, $symb2Value, $operator);
         $this->setVariableValue($varName, $result);
-
-        return null;
     }
 
     /**
      * Handling AND instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleAnd(array $args)
+    protected function handleAnd(array $args) : void
     {
-        if (count($args) != 3) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 3);
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
+
         if (!is_bool($symb1Value) || !is_bool($symb2Value)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
         $result = $symb1Value && $symb2Value;
         $this->setVariableValue($varName, $result);
 
-        return null;
     }
 
     /**
      * Handling OR instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleOr(array $args)
+    protected function handleOr(array $args) : void
     {
-        if (count($args) != 3) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 3);
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
+
         if (!is_bool($symb1Value) || !is_bool($symb2Value)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
         $result = $symb1Value || $symb2Value;
         $this->setVariableValue($varName, $result);
 
-        return null;
     }
 
     /**
      * Handling NOT instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleNot(array $args)
+    protected function handleNot(array $args) : void
     {
-        if (count($args) != 2) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 2);
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
         if (!is_bool($symb1Value)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
         $result = !$symb1Value;
         $this->setVariableValue($varName, $result);
 
-        return null;
     }
 
     /**
      * Handling INT2CHAR instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleInt2Char(array $args)
+    protected function handleInt2Char(array $args) : void
     {
-        if (count($args) != 2) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 2);
 
         $varName = $args[0]['value'];
         $symbValue = $this->determineValue($args[1]);
 
         if (!is_int($symbValue)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
-        // Проверяем, является ли значение допустимым Unicode кодом символа
+        // check if value is okay
         if ($symbValue < 0 || $symbValue > 0x10FFFF) {
-            ErrorHandler::handleException(ReturnCode::STRING_OPERATION_ERROR); // Используйте соответствующий код ошибки
+            HelperFunctions::handleException(ReturnCode::STRING_OPERATION_ERROR);
         }
 
         $char = mb_chr($symbValue, 'UTF-8');
         $this->setVariableValue($varName, $char);
 
-        return null;
     }
 
     /**
      * Handling STR2INT instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleStri2Int(array $args)
+    protected function handleStri2Int(array $args) : void
     {
-        if (count($args) != 3) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 3);
 
         $varName = $args[0]['value'];
         $string = $this->determineValue($args[1]);
         $position = $this->determineValue($args[2]);
 
         if (!is_string($string) || !is_int($position)) {
-            ErrorHandler::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
-        // Проверка на выход за пределы строки
+        // check if position is okay
         if ($position < 0 || $position >= mb_strlen($string, 'UTF-8')) {
-            ErrorHandler::handleException(ReturnCode::STRING_OPERATION_ERROR); // Используйте соответствующий код ошибки
+            HelperFunctions::handleException(ReturnCode::STRING_OPERATION_ERROR); 
         }
 
         $char = mb_substr($string, $position, 1, 'UTF-8');
         $ordValue = mb_ord($char, 'UTF-8');
         $this->setVariableValue($varName, $ordValue);
-
-        return null;
     }
 
     /**
+     * TODO check how it really works
      * Handling STR2INT instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleRead(array $args)
+    protected function handleRead(array $args) : void
     {
-        if (count($args) != 2) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
+        HelperFunctions::checkArgs($args, 2);
 
         $varName = $args[0]['value'];
         $type = $args[1]['value'];
@@ -800,36 +748,36 @@ class InstructionProcessor
         }
 
         $this->setVariableValue($varName, $value);
-
-        return null;
     }
 
     /**
      * Handling STR2INT instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return mixed
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleWrite(array $args): mixed
+    protected function handleWrite(array $args): void
     {
         if (count($args) != 1) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
 
         $value = $this->determineValue($args[0]);
-        
-        return $value;
+
+        if ($value != null){
+            $this->resultOutputter->outputResult($value);
+        }
     }
 
     /**
      * Handling CONCAT instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleConcat(array $args)
+    protected function handleConcat(array $args) : void
     {
         HelperFunctions::CheckArgs($args, 3);
 
@@ -839,17 +787,16 @@ class InstructionProcessor
 
         $result = $symb1Value . $symb2Value;
         $this->setVariableValue($varName, $result);
-        return null;
     }
 
     /**
      * Handling STRLEN instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleStrlen(array $args)
+    protected function handleStrlen(array $args) : void
     {
         HelperFunctions::CheckArgs($args, 2);
 
@@ -858,18 +805,16 @@ class InstructionProcessor
 
         $result = mb_strlen($stringValue, "UTF-8");
         $this->setVariableValue($varName, $result);
-
-        return null;
     }
 
     /**
      * Handling GETCHAR instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleGetchar(array $args)
+    protected function handleGetchar(array $args) : void
     {
         HelperFunctions::CheckArgs($args, 3);
 
@@ -879,25 +824,22 @@ class InstructionProcessor
 
         if (!is_string($stringValue) || !is_int($indexValue)) {
             HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-            return null;
         }
 
         HelperFunctions::checkIndex($stringValue, $indexValue);
 
         $result = mb_substr($stringValue, $indexValue, 1, "UTF-8");
         $this->setVariableValue($varName, $result);
-
-        return null;
     }
 
     /**
      * Handling SETCHAR instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleSetchar(array $args)
+    protected function handleSetchar(array $args) : void
     {
         HelperFunctions::CheckArgs($args, 3);
 
@@ -907,7 +849,6 @@ class InstructionProcessor
 
         if (!is_string($varName) || !is_int($position) || !is_string($replacement) || $replacement === '') {
             HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-            return null;
         }
 
         HelperFunctions::checkIndex($varName, $position);
@@ -917,18 +858,16 @@ class InstructionProcessor
         $result = mb_substr($varName, 0, $position, "UTF-8") . $charToInsert . mb_substr($varName, $position + 1, mb_strlen($varName, "UTF-8") - $position - 1, "UTF-8");
 
         $this->setVariableValue($args[0]['value'], $result);
-
-        return null;
     }
 
     /**
      * Handling TYPE instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleType(array $args)
+    protected function handleType(array $args) : void
     {
         HelperFunctions::CheckArgs($args, 2);
 
@@ -938,28 +877,108 @@ class InstructionProcessor
         $result = HelperFunctions::getDataType($symbValue);
 
         $this->setVariableValue($varName, $result);
-
-        return null;
     }
 
     /**
      * Handling JUMP instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If arguments are invalid
      */
-    protected function handleJump(array $args)
+    protected function handleJump(array $args) : void
     {
         HelperFunctions::CheckArgs($args, 1);
 
         $label = $args[0]['value'];
         if (!array_key_exists($label, $this->labels)) {
-            ErrorHandler::handleException(ReturnCode::SEMANTIC_ERROR);
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
         $this->instructionIndex = $this->labels[$label];
         $this->indexModified = true;
+    }
 
-        return null;
+    /**
+     * Handling JUMPIFEQ instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return void
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleJumpifeq(array $args) : void
+    {
+        HelperFunctions::CheckArgs($args, 3);
+
+        $label = $args[0]['value'];
+        $symb1Value = $this->determineValue($args[1]);
+        $symb2Value = $this->determineValue($args[2]);
+
+        if (!array_key_exists($label, $this->labels)) {
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+        if ($symb1Value === $symb2Value){
+            $this->instructionIndex = $this->labels[$label];
+            $this->indexModified = true;
+        }
+    }
+
+    /**
+     * Handling JUMPIFNEQ instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return void
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleJumpifneq(array $args) : void
+    {
+        HelperFunctions::CheckArgs($args, 3);
+
+        $label = $args[0]['value'];
+        $symb1Value = $this->determineValue($args[1]);
+        $symb2Value = $this->determineValue($args[2]);
+
+        if (!array_key_exists($label, $this->labels)) {
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+        if ($symb1Value != $symb2Value){
+            $this->instructionIndex = $this->labels[$label];
+            $this->indexModified = true;
+        }
+    }
+
+    /**
+     * Handling EXIT instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return void
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleExit(array $args) : void
+    {
+        HelperFunctions::CheckArgs($args, 1);
+
+        $symb1Value = $this->determineValue($args[0]);
+
+        if ($symb1Value < 0 || $symb1Value > 9){
+            HelperFunctions::handleException(ReturnCode::OPERAND_VALUE_ERROR);
+        }
+        exit($symb1Value);
+    }
+
+    /**
+     * Handling DPRINT instruction
+     * 
+     * @param array<mixed> $args Array of arguments
+     * @return void
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleDprint(array $args): void
+    {
+        if (count($args) != 1) {
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
+        }
+
+        $value = $this->determineValue($args[0]);
+        $this->resultOutputter->outputError($value);
     }
 }

@@ -10,14 +10,18 @@ namespace IPP\Student;
 use IPP\Core\AbstractInterpreter;
 use IPP\Core\Exception\NotImplementedException;
 use IPP\Core\StreamWriter;
+use IPP\Core\Settings;
+use IPP\Core\FileInputReader;
 use IPP\Student\InstructionProcessor;
 use IPP\Student\InstructionSorter;
 use IPP\Student\XMLAnalyzer;
+use IPP\Student\HelperFunctions;
 
 class Interpreter extends AbstractInterpreter
 {
     public function execute(): int
-    {
+    {   
+        $helperFunctions = new HelperFunctions();
         //Intialize the source analyzer
         $sourceAnalyzer = new XMLAnalyzer($this->source->getDOMDocument());
         $instructions = $sourceAnalyzer->analyze();
@@ -25,20 +29,27 @@ class Interpreter extends AbstractInterpreter
         $sorter = new InstructionSorter();
         $sortedInstructions = $sorter->sortInstructions($instructions);
 
-        $processor = new InstructionProcessor();
-        $stdoutWriter = new StreamWriter(STDOUT);
-        $stderrWriter = new StreamWriter(STDERR);
+        $settings = new Settings();
+        $settings->processArgs();
+
+        $inputReader = $settings->getInputReader();
+
+        $stdoutWritter = new StreamWriter(STDOUT);
+        $stderrWritter = new StreamWriter(STDERR);
+
+        $resultOutputter = new ResultOutputter($stdoutWritter, $stderrWritter);
+
+        $processor = new InstructionProcessor($inputReader, $resultOutputter);
+
 
         // Initialize instruction index
         $processor->instructionIndex = 0;
+        $processor->checkLabels($sortedInstructions);
 
         // Handle each instruction according to the instruction index
         while ($processor->instructionIndex < count($sortedInstructions)) {
             $currentInstruction = $sortedInstructions[$processor->instructionIndex];
-            $result = $processor->processInstruction($currentInstruction);
-            if ($result !== null) {
-                $stdoutWriter->writeString($result);
-            }
+            $processor->processInstruction($currentInstruction);
 
             // Manually increment the instruction index if not modified by CALL or RETURN
             if (!$processor->indexModified) {

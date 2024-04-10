@@ -11,7 +11,6 @@ use DOMDocument;
 use DOMXPath;
 use Exception;
 use IPP\Core\ReturnCode;
-use IPP\Student\ErrorHandler;
 
 class XMLAnalyzer
 {
@@ -43,13 +42,13 @@ class XMLAnalyzer
         // check that root element is 'program'
         $root = $this->dom->documentElement;
         if ($root === null || $root->nodeName !== 'program') { 
-            ErrorHandler::handleException(ReturnCode::INPUT_FILE_ERROR);
+            HelperFunctions::handleException(ReturnCode::INPUT_FILE_ERROR);
         }
 
         // check that 'language' attribute is 'IPPcode24'
         $language = $root->getAttribute('language');
         if (strtolower($language) !== 'ippcode24') {
-            ErrorHandler::handleException(ReturnCode::INPUT_FILE_ERROR);
+            HelperFunctions::handleException(ReturnCode::INPUT_FILE_ERROR);
         }
     }
 
@@ -71,16 +70,16 @@ class XMLAnalyzer
         foreach ($instructions as $instruction) {
             if ($instruction instanceof \DOMElement) {
                 if (!$instruction->hasAttribute('order') || !$instruction->hasAttribute('opcode')) {
-                    ErrorHandler::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+                    HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
                 }
         
                 // check that 'order' attribute is a positive integer
                 $order = $instruction->getAttribute('order');
                 if (!filter_var($order, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]])) {
-                    ErrorHandler::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+                    HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
                 }
             } else {
-                ErrorHandler::handleException(ReturnCode::INPUT_FILE_ERROR);
+                HelperFunctions::handleException(ReturnCode::INPUT_FILE_ERROR);
             }
         }
     }

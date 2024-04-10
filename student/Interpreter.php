@@ -12,10 +12,6 @@ use IPP\Core\Exception\NotImplementedException;
 use IPP\Core\StreamWriter;
 use IPP\Core\Settings;
 use IPP\Core\FileInputReader;
-use IPP\Student\InstructionProcessor;
-use IPP\Student\InstructionSorter;
-use IPP\Student\XMLAnalyzer;
-use IPP\Student\HelperFunctions;
 
 class Interpreter extends AbstractInterpreter
 {

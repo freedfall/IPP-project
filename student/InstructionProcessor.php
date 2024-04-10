@@ -234,25 +234,24 @@ class InstructionProcessor
      * @return array<mixed>|null Reference to the frame
      * @throws \Exception If the frame type is invalid
      */
-    protected function &getFrame($frameType) : ?array
-    {
-        switch ($frameType) {
-            case 'GF':
-                return $this->globalFrame;
-            case 'TF':
-                return $this->tempFrame;
-            case 'LF':
-                // return current local frame if exists
-                if (!empty($this->frameStack)) {
-                    return end($this->frameStack);
-                } else {
-                    HelperFunctions::handleException(ReturnCode::FRAME_ACCESS_ERROR);
-                    return null;
-                }
-            default:
-                HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
-                return null;
+    protected function &getFrame($frameType) {
+        if ($frameType === 'GF') {
+            return $this->globalFrame;
+        } elseif ($frameType === 'TF') {
+            return $this->tempFrame;
+        } elseif ($frameType === 'LF') {
+            if (empty($this->frameStack)) {
+                HelperFunctions::handleException(ReturnCode::FRAME_ACCESS_ERROR);
+            } else {
+                // using temporary variable to avoid PHP warnings
+                $temp = &$this->frameStack[array_key_last($this->frameStack)];
+                return $temp;
+            }
+        } else {
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
+            return null;
         }
+        return null;
     }
 
     /**
@@ -287,7 +286,7 @@ class InstructionProcessor
         $frame = &$this->getFrame($frameType);
 
         $frame[$varName] = $value;
-        print_r($frame);
+        // print_r($frame);
     }
 
     /**
@@ -337,7 +336,10 @@ class InstructionProcessor
         if (empty($this->frameStack)) {
             HelperFunctions::handleException(ReturnCode::FRAME_ACCESS_ERROR);
         }
+        // print_r($this->frameStack);
+
         $this->tempFrame = array_pop($this->frameStack); // Put TF from the stack to TF
+        // print_r($this->tempFrame);
     }
 
     /**
@@ -362,7 +364,7 @@ class InstructionProcessor
         // New variable is created with value NULL and without type
         $frame[$varName] = null;
 
-        print_r($frame);
+        // print_r($frame);
     }
 
     /**

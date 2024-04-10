@@ -1,7 +1,7 @@
 <?php
 /**
  * IPP Interpreter
- * Class for handling error codes
+ * Class for using helper methods
  * @author Timur Kininbayev (xkinin00)
  * 
  */

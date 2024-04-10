@@ -16,7 +16,8 @@ class ResultOutputter
     protected StreamWriter $stderr;
 
     /**
-     * @param StreamWriter $stdoutWritter Standard output stream
+     * @param StreamWriter $stdoutWriter Standard output stream
+     * @param StreamWriter $stderrWriter error output stream
      */
     public function __construct(StreamWriter $stdoutWriter, StreamWriter $stderrWriter)
     {

@@ -7,9 +7,7 @@
  */
 namespace IPP\Student;
 
-use DOMElement;
 use IPP\Core\ReturnCode;
-use IPP\Core\FileInputReader;
 use IPP\Core\Interface\InputReader;
 
 /**
@@ -44,7 +42,7 @@ class InstructionProcessor
      */
     protected ?array $tempFrame = null;
     /**
-     * @var array<mixed> Associative array where keys are label names and values are instruction indices
+     * @var array<mixed> Data stack for temporary storage of values
      */
     protected array $dataStack = [];
 
@@ -176,6 +174,12 @@ class InstructionProcessor
             case 'EXIT':
                 $this->handleExit($instruction['args']);
                 break;
+            case 'DPRINT':
+                $this->handleDprint($instruction['args']);
+                break;
+            case 'BREAK':
+                $this->handleBreak();
+                break;
             default:
                 HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
@@ -211,7 +215,7 @@ class InstructionProcessor
             case 'int':
                 return (int)$arg['value'];
             case 'bool':
-                // convert string to boolean (every string except 'true' is false)
+                // convert string to boolean (every string except 'true' is false in PHP)
                 return $arg['value'] === 'true' ? true : false;
             case 'float':
                 return (float)$arg['value'];
@@ -223,6 +227,7 @@ class InstructionProcessor
     }
 
     /**
+     * TODO: maybe move to helper functions or create a separate class
      * Returns reference to the frame by its type
      * 
      * @param string $frameType Type of the frame
@@ -410,7 +415,7 @@ class InstructionProcessor
      * Handling POPS instruction
      * 
      * @param array<mixed> $args Array of arguments
-     * @return null
+     * @return void
      * @throws \Exception If the data stack is empty
      */
     protected function handlePops(array $args) : void
@@ -439,7 +444,6 @@ class InstructionProcessor
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
         
-        //TODO: check how to compare data types cause now its autoconveting
         if (!is_int($symb1Value) || !is_int($symb2Value)) {
             HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
@@ -476,12 +480,11 @@ class InstructionProcessor
      * 
      * @param array<mixed> $args Array of arguments
      * @return void
-     * @throws \Exception If the data stack is empty
+     * @throws \Exception If operands are not integers
      */
     protected function handleMul(array $args) : void
     {
         HelperFunctions::checkArgs($args, 3);
-
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
@@ -501,12 +504,11 @@ class InstructionProcessor
      * 
      * @param array<mixed> $args Array of arguments
      * @return void
-     * @throws \Exception If the data stack is empty
+     * @throws \Exception If operands are invalid
      */
     protected function handleIdiv(array $args) : void
     {
         HelperFunctions::checkArgs($args, 3);
-
 
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
@@ -531,7 +533,7 @@ class InstructionProcessor
      * @param mixed $value2 Second value
      * @param string $operator Comparison operator (LT, GT, EQ)
      * @return bool
-     * @throws \Exception If the data stack is empty
+     * @throws \Exception If operands are invalid
      */
     protected function compareValues($value1, $value2, string $operator): bool
     {
@@ -631,7 +633,7 @@ class InstructionProcessor
      * 
      * @param array<mixed> $args Array of arguments
      * @return void
-     * @throws \Exception If arguments are invalid
+     * @throws \Exception If symbols are not boolean
      */
     protected function handleNot(array $args) : void
     {
@@ -707,7 +709,7 @@ class InstructionProcessor
 
     /**
      * TODO check how it really works
-     * Handling STR2INT instruction
+     * Handling Read instruction
      * 
      * @param array<mixed> $args Array of arguments
      * @return void
@@ -720,10 +722,10 @@ class InstructionProcessor
         $varName = $args[0]['value'];
         $type = $args[1]['value'];
 
-        // Инициализация значения переменной nil в случае ошибки чтения
+        // in case of error, set value to nil@nil
         $value = 'nil@nil';
 
-        // Чтение значения из входного потока в соответствии с типом
+        // read value from input
         switch ($type) {
             case 'int':
                 $readValue = $this->inputReader->readInt();
@@ -751,7 +753,7 @@ class InstructionProcessor
     }
 
     /**
-     * Handling STR2INT instruction
+     * Handling WRITE instruction
      * 
      * @param array<mixed> $args Array of arguments
      * @return void
@@ -980,5 +982,16 @@ class InstructionProcessor
 
         $value = $this->determineValue($args[0]);
         $this->resultOutputter->outputError($value);
+    }
+
+    /**
+     * Handling BREAK instruction
+     * Just outputs the current instruction index
+     * @return void
+     * @throws \Exception If arguments are invalid
+     */
+    protected function handleBreak(): void
+    {
+        $this->resultOutputter->outputError($this->instructionIndex);
     }
 }

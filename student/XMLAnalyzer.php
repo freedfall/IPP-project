@@ -20,6 +20,10 @@ class XMLAnalyzer
     {
         $this->dom = $dom;
         $this->dom->preserveWhiteSpace = false;
+        // check if the XML source is well-formed
+        // if (!$this->dom->validate()) {
+        //     HelperFunctions::handleException(ReturnCode::INVALID_XML_ERROR);
+        // }
     }
 
     /**
@@ -158,6 +162,13 @@ class XMLAnalyzer
             }
         }
         ksort($args); // Сортировка массива аргументов по ключам
+        $expectedArgIndex = 0;
+        foreach ($args as $index => $arg) {
+            if ($index != $expectedArgIndex) {
+                HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+            }
+            $expectedArgIndex++;
+        }
         return array_values($args);
     }
 }

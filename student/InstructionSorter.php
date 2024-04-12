@@ -15,9 +15,13 @@ class InstructionSorter
      */
     public function sortInstructions(array $instructions): array
     {
-        usort($instructions, function ($a, $b) {
-            return (int)$a['order'] <=> (int)$b['order'];
-        });
-        return $instructions;
+        $sortedInstructions = [];
+
+        foreach ($instructions as $instruction) {
+            $order = (int) $instruction['order'];
+            $sortedInstructions[$order] = $instruction;
+        }
+        ksort($sortedInstructions);
+        return $sortedInstructions;
     }
 }

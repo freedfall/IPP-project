@@ -214,6 +214,9 @@ class InstructionProcessor
             case 'var':
                 return $this->getVariableValue($arg['value']);
             case 'int':
+                if (!is_numeric($arg['value'])) {
+                    HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+                }
                 return (int)$arg['value'];
             case 'bool':
                 // convert string to boolean (every string except 'true' is false in PHP)
@@ -266,6 +269,9 @@ class InstructionProcessor
     {
         list($frameType, $varName) = explode('@', $fullVarName, 2);
         $frame = $this->getFrame($frameType);
+        if ($frame === null) {
+            HelperFunctions::handleException(ReturnCode::FRAME_ACCESS_ERROR);
+        }
         if (array_key_exists($varName, $frame)) {
             if ($frame[$varName] === null) {
                 $frame[$varName] = '';
@@ -363,7 +369,9 @@ class InstructionProcessor
         $fullVarName = $args[0]['value'];
         list($frameType, $varName) = explode('@', $fullVarName, 2);
         $frame = &$this->getFrame($frameType);
-
+        if ($frame === null) {
+            HelperFunctions::handleException(ReturnCode::FRAME_ACCESS_ERROR);
+        }
         if (array_key_exists($varName, $frame)) {
             HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }

@@ -37,21 +37,36 @@ class Interpreter extends AbstractInterpreter
 
         $processor = new InstructionProcessor($inputReader, $resultOutputter);
 
-
+        if (empty($sortedInstructions)) {
+            return 0; // Success
+        }
         // Initialize instruction index
-        $processor->instructionIndex = 0;
+        $processor->instructionIndex = min(array_keys($sortedInstructions));
+
+        // handle labels
         $processor->checkLabels($sortedInstructions);
 
-        // Handle each instruction according to the instruction index
-        while ($processor->instructionIndex < count($sortedInstructions)) {
-            $currentInstruction = $sortedInstructions[$processor->instructionIndex];
-            $processor->processInstruction($currentInstruction);
-
-            // Manually increment the instruction index if not modified by CALL or RETURN
-            if (!$processor->indexModified) {
-                $processor->instructionIndex++;
+        // handle every instruction
+        while ($processor->instructionIndex <= max(array_keys($sortedInstructions))) {
+            if (isset($sortedInstructions[$processor->instructionIndex])) {
+                $currentInstruction = $sortedInstructions[$processor->instructionIndex];
+                $processor->processInstruction($currentInstruction);
             }
-            // Reset index modification flag for the next iteration
+            
+            // increment instruction index if it was not modified
+            if (!$processor->indexModified) {
+                // set index to the next instruction
+                $currentKeys = array_keys($sortedInstructions);
+                $currentIndexKey = array_search($processor->instructionIndex, $currentKeys);
+                
+                // check if there is a next instruction
+                if (isset($currentKeys[$currentIndexKey + 1])) {
+                    $processor->instructionIndex = $currentKeys[$currentIndexKey + 1];
+                } else {
+                    break; // if there is no next instruction, break the loop
+                }
+            }
+
             $processor->indexModified = false;
         }
 

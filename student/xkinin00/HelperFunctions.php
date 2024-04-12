@@ -96,7 +96,7 @@ class HelperFunctions {
     public static function checkArgs(array $args, int $count): void
     {
         if (count($args) != $count) {
-            self::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+            self::handleException(ReturnCode::SEMANTIC_ERROR);
         }
     }
 
@@ -112,17 +112,5 @@ class HelperFunctions {
             self::handleException(ReturnCode::STRING_OPERATION_ERROR);
             return;
         }
-    }
-
-    /**
-     * Function for checking if index is in string range
-     * @param string $str
-     * @return string - decoded string 
-     * @throws \Exception - if the data type is not supported
-     */
-    public static function decodeEscapedCharacters($str) {
-        return preg_replace_callback('/\\\\(\d{3})/', function($matches) {
-            return chr(intval($matches[1]));
-        }, $str);
     }
 }

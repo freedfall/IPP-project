@@ -89,7 +89,6 @@ class InstructionProcessor
                 $this->handlePopFrame();
                 break;
             case 'DEFVAR':
-                // print("HANDLING DEFVAR\n");
                 $this->handleDefvar($instruction['args']);
                 break;
             case 'CALL':
@@ -182,7 +181,7 @@ class InstructionProcessor
                 $this->handleBreak();
                 break;
             default:
-                HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+                HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
     }
     /**
@@ -249,7 +248,7 @@ class InstructionProcessor
                 return $temp;
             }
         } else {
-            HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
             return null;
         }
         return null;
@@ -266,12 +265,9 @@ class InstructionProcessor
     {
         list($frameType, $varName) = explode('@', $fullVarName, 2);
         $frame = $this->getFrame($frameType);
-        if (array_key_exists($varName, $frame)) {
-            if ($frame[$varName] === null) {
-                $frame[$varName] = '';
-            }
+        if (isset($frame[$varName])) {
             return $frame[$varName];
-        } elseif (!array_key_exists($varName, $frame) || $frame === null){
+        } else {
             HelperFunctions::handleException(ReturnCode::VARIABLE_ACCESS_ERROR);
             return null;
         }
@@ -289,10 +285,8 @@ class InstructionProcessor
         list($frameType, $varName) = explode('@', $fullVarName, 2);
         $frame = &$this->getFrame($frameType);
 
-        if (!array_key_exists($varName, $frame)) {
-            HelperFunctions::handleException(ReturnCode::VARIABLE_ACCESS_ERROR);
-        }
         $frame[$varName] = $value;
+        // print_r($frame);
     }
 
     /**
@@ -304,8 +298,10 @@ class InstructionProcessor
      protected function handleMove(array $args): void
      {
          HelperFunctions::CheckArgs($args, 2);
+ 
          $targetVarName = $args[0]['value'];
          $sourceValue = $this->determineValue($args[1]);
+ 
          $this->setVariableValue($targetVarName, $sourceValue);
      }
 
@@ -315,9 +311,6 @@ class InstructionProcessor
      */
     protected function handleCreateFrame()
     {
-        // if ($this->tempFrame !== null) {
-        //     HelperFunctions::handleException(ReturnCode::VARIABLE_ACCESS_ERROR);
-        // }
         $this->tempFrame = []; // create new TF
     }
 
@@ -401,7 +394,7 @@ class InstructionProcessor
     protected function handleReturn() : void
     {
         if (empty($this->callStack)) {
-            HelperFunctions::handleException(ReturnCode::VALUE_ERROR);
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
         $this->instructionIndex = array_pop($this->callStack);
         $this->indexModified = true;
@@ -430,7 +423,7 @@ class InstructionProcessor
     protected function handlePops(array $args) : void
     {
         if (empty($this->dataStack)) {
-            HelperFunctions::handleException(ReturnCode::VALUE_ERROR);
+            HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
         
         $value = array_pop($this->dataStack);
@@ -546,17 +539,12 @@ class InstructionProcessor
      */
     protected function compareValues($value1, $value2, string $operator): bool
     {
-        if (gettype($value1) !== gettype($value2) && $operator !== 'EQ') {
-                HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-        } elseif ($operator === 'EQ'){
-            if (gettype($value1) !== gettype($value2) && ($value1 !== 'nil@nil' && $value2 !== 'nil@nil')){
-                HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-            }
+        if (gettype($value1) !== gettype($value2)) {
+            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
         switch ($operator) {
             case 'LT':
-                $result = $value1 < $value2;
                 return $value1 < $value2;
             case 'GT':
                 return $value1 > $value2;
@@ -583,13 +571,14 @@ class InstructionProcessor
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
-        if ($symb1Value === 'nil@nil' || $symb2Value === 'nil@nil') {
-            if ($operator !== 'EQ') {
+
+        if ($symb1Value === null || $symb2Value === null) {
+            if ($operator !== 'EQ' || ($symb1Value !== null || $symb2Value !== null)) {
                 HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
             }
         }
+
         $result = $this->compareValues($symb1Value, $symb2Value, $operator);
-        $result = $result ? 'true' : 'false';
         $this->setVariableValue($varName, $result);
     }
 
@@ -612,7 +601,7 @@ class InstructionProcessor
             HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
-        $result = $symb1Value && $symb2Value ? 'true' : 'false';
+        $result = $symb1Value && $symb2Value;
         $this->setVariableValue($varName, $result);
 
     }
@@ -636,7 +625,7 @@ class InstructionProcessor
             HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
-        $result = $symb1Value || $symb2Value ? 'true' : 'false';
+        $result = $symb1Value || $symb2Value;
         $this->setVariableValue($varName, $result);
 
     }
@@ -659,7 +648,6 @@ class InstructionProcessor
         }
 
         $result = !$symb1Value;
-        $result = $result ? 'true' : 'false';
         $this->setVariableValue($varName, $result);
 
     }
@@ -707,7 +695,7 @@ class InstructionProcessor
         $string = $this->determineValue($args[1]);
         $position = $this->determineValue($args[2]);
 
-        if (!is_string($string) || !is_int($position) || $string === 'nil@nil') {
+        if (!is_string($string) || !is_int($position)) {
             HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
@@ -723,7 +711,7 @@ class InstructionProcessor
 
     /**
      * TODO check how it really works
-     * Handling READ instruction
+     * Handling Read instruction
      * 
      * @param array<mixed> $args Array of arguments
      * @return void
@@ -760,7 +748,7 @@ class InstructionProcessor
                 }
                 break;
             default:
-                HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+                break;
         }
 
         $this->setVariableValue($varName, $value);
@@ -781,14 +769,9 @@ class InstructionProcessor
 
         $value = $this->determineValue($args[0]);
 
-        if (is_bool($value)){
-            $value = $value ? 'true' : 'false';
+        if ($value != null){
+            $this->resultOutputter->outputResult($value);
         }
-
-        if (is_string($value)){
-            $value = HelperFunctions::decodeEscapedCharacters($value);  
-        }
-        $this->resultOutputter->outputResult($value);
     }
 
     /**
@@ -805,10 +788,6 @@ class InstructionProcessor
         $varName = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
-
-        if (!is_string($symb1Value) || !is_string($symb2Value) || $symb1Value === 'nil@nil' || $symb2Value === 'nil@nil') {
-            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-        }
 
         $result = $symb1Value . $symb2Value;
         $this->setVariableValue($varName, $result);
@@ -828,9 +807,6 @@ class InstructionProcessor
         $varName = $args[0]['value'];
         $stringValue = $this->determineValue($args[1]);
 
-        if (!is_string($stringValue) || $stringValue === 'nil@nil') {
-            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-        }
         $result = mb_strlen($stringValue, "UTF-8");
         $this->setVariableValue($varName, $result);
     }
@@ -850,7 +826,7 @@ class InstructionProcessor
         $stringValue = $this->determineValue($args[1]);
         $indexValue = $this->determineValue($args[2]);
 
-        if (!is_string($stringValue) || !is_int($indexValue) || $stringValue === 'nil@nil') {
+        if (!is_string($stringValue) || !is_int($indexValue)) {
             HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
@@ -875,7 +851,7 @@ class InstructionProcessor
         $position = $this->determineValue($args[1]);
         $replacement = $this->determineValue($args[2]);
 
-        if (!is_string($varName) || !is_int($position) || !is_string($replacement) || $replacement === 'nil@nil') {
+        if (!is_string($varName) || !is_int($position) || !is_string($replacement) || $replacement === '') {
             HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
         }
 
@@ -899,30 +875,12 @@ class InstructionProcessor
     {
         HelperFunctions::CheckArgs($args, 2);
 
-        $fullVarName = $args[0]['value'];
-        $fullVarName2 = $args[1]['value'];
-        if ($args[1]['dataType'] === 'var'){
-            list($frameType, $varName) = explode('@', $fullVarName2, 2);
-            $frame = $this->getFrame($frameType);
-            if (array_key_exists($varName, $frame)) {
-                if ($frame[$varName] === null) {
-                    $result = '';
-                    $this->setVariableValue($fullVarName, $result);
-                    return;
-                }
-                $symbValue = $frame[$varName];
-            } else {
-                HelperFunctions::handleException(ReturnCode::VARIABLE_ACCESS_ERROR);
-                return;
-            }
-        } else {
-            $symbValue = $this->determineValue($args[1]);
-        }
-        // $symbValue = $this->determineValue($args[1]);
+        $varName = $args[0]['value'];
+        $symbValue = $this->determineValue($args[1]);
 
         $result = HelperFunctions::getDataType($symbValue);
 
-        $this->setVariableValue($fullVarName, $result);
+        $this->setVariableValue($varName, $result);
     }
 
     /**
@@ -958,27 +916,9 @@ class InstructionProcessor
         $label = $args[0]['value'];
         $symb1Value = $this->determineValue($args[1]);
         $symb2Value = $this->determineValue($args[2]);
+
         if (!array_key_exists($label, $this->labels)) {
             HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
-        }
-        if (is_bool($symb1Value)){
-            if (is_bool($symb2Value) || $symb2Value === 'true' || $symb2Value === 'false'){
-                $symb1Value = $symb1Value ? 'true' : 'false';
-            } else{
-                HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-            }
-        }
-        if (is_bool($symb2Value)){
-            if (is_bool($symb1Value) || $symb1Value === 'true' || $symb1Value === 'false'){
-                $symb2Value = $symb2Value ? 'true' : 'false';
-            } else{
-                HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-            }
-        }
-        if (HelperFunctions::getDataType($symb1Value) != HelperFunctions::getDataType($symb2Value)){
-            if ($symb1Value !== 'nil@nil' && $symb2Value !== 'nil@nil'){
-                HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-            }
         }
         if ($symb1Value === $symb2Value){
             $this->instructionIndex = $this->labels[$label];
@@ -1004,9 +944,6 @@ class InstructionProcessor
         if (!array_key_exists($label, $this->labels)) {
             HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
-        if (HelperFunctions::getDataType($symb1Value) !== HelperFunctions::getDataType($symb2Value)){
-            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-        }
         if ($symb1Value != $symb2Value){
             $this->instructionIndex = $this->labels[$label];
             $this->indexModified = true;
@@ -1025,10 +962,6 @@ class InstructionProcessor
         HelperFunctions::CheckArgs($args, 1);
 
         $symb1Value = $this->determineValue($args[0]);
-
-        if (!is_int($symb1Value)){
-            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
-        }
 
         if ($symb1Value < 0 || $symb1Value > 9){
             HelperFunctions::handleException(ReturnCode::OPERAND_VALUE_ERROR);

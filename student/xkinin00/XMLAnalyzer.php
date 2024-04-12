@@ -19,7 +19,6 @@ class XMLAnalyzer
     public function __construct(DOMDocument $dom)
     {
         $this->dom = $dom;
-        $this->dom->preserveWhiteSpace = false;
     }
 
     /**
@@ -29,20 +28,9 @@ class XMLAnalyzer
     public function analyze(): array
     {
         $this->checkRoot();
-        $this->checkForInvalidElements();
-        $this->checkInstructions();
         $instructionsData = $this->extractInstructions();
 
         return $instructionsData;
-    }
-
-    protected function checkForInvalidElements(): void {
-        $xpath = new DOMXPath($this->dom);
-        $invalidElements = $xpath->query('/program/*[not(self::instruction)]');
-    
-        if ($invalidElements->length > 0) {
-            HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
-        }
     }
 
     /**
@@ -54,13 +42,13 @@ class XMLAnalyzer
         // check that root element is 'program'
         $root = $this->dom->documentElement;
         if ($root === null || $root->nodeName !== 'program') { 
-            HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+            HelperFunctions::handleException(ReturnCode::INPUT_FILE_ERROR);
         }
 
         // check that 'language' attribute is 'IPPcode24'
         $language = $root->getAttribute('language');
         if (strtolower($language) !== 'ippcode24') {
-            HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+            HelperFunctions::handleException(ReturnCode::INPUT_FILE_ERROR);
         }
     }
 
@@ -74,33 +62,24 @@ class XMLAnalyzer
         $instructions = $xpath->query('/program/instruction');
 
         // check that there is at least one instruction
-        if ($instructions === false) {
-            HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
+        if ($instructions === false || $instructions->length === 0) {
+            throw new Exception("No instructions found in the program.");
         }
-        // print_r($instructions);
-        $seenOrders = [];
+
         // check that each instruction has 'order' and 'opcode' attributes
         foreach ($instructions as $instruction) {
             if ($instruction instanceof \DOMElement) {
                 if (!$instruction->hasAttribute('order') || !$instruction->hasAttribute('opcode')) {
                     HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
                 }
+        
                 // check that 'order' attribute is a positive integer
-                $order = trim($instruction->getAttribute('order'));
+                $order = $instruction->getAttribute('order');
                 if (!filter_var($order, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]])) {
                     HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
                 }
-                // check that 'order' attribute is unique
-                if (isset($seenOrders[$order])) {
-                    HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                }
-                $seenOrders[$order] = true;
-
-                // check that 'opcode' attribute is a non-empty string
-                $opcode = $instruction->getAttribute('opcode');
-                if (empty($opcode)) {
-                    HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                }
+            } else {
+                HelperFunctions::handleException(ReturnCode::INPUT_FILE_ERROR);
             }
         }
     }
@@ -114,11 +93,13 @@ class XMLAnalyzer
         $xpath = new DOMXPath($this->dom);
         $instructionsNodes = $xpath->query('/program/instruction');
         $instructionsData = [];
+
         foreach ($instructionsNodes as $node) {
             if ($node instanceof \DOMElement) {
                 $opcode = $node->getAttribute('opcode');
-                $order = trim($node->getAttribute('order'));
-                $args = $this->extractArgs($node);  
+                $order = $node->getAttribute('order');
+                $args = $this->extractArgs($node);
+    
                 $instructionsData[] = [
                     'order' => $order,
                     'opcode' => $opcode,
@@ -126,6 +107,7 @@ class XMLAnalyzer
                 ];
             }
         }
+
         return $instructionsData;
     }
 
@@ -140,25 +122,15 @@ class XMLAnalyzer
         foreach ($instruction->childNodes as $child) {
             if ($child instanceof \DOMElement) {
                 $argType = $child->getAttribute('type');
-                //check if arg has type attribute
-                if (empty($argType)) {
-                    HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                }
-                //check so args names are okay (arg1, arg2, etc.)
-                if (!preg_match('/^arg([1-9][0-9]*)$/', $child->nodeName, $matches)) {
-                    HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                }
-                $argNumber = (int)$matches[1]-1; // Получение номера аргумента и корректировка для использования в качестве ключа массива
-                $value = trim($child->nodeValue);
-                $args[$argNumber] = [
-                    'type' => $child->nodeName,
+                $value = $child->nodeValue;
+                $args[] = [
+                    'type' => $child->nodeName, // arg1, arg2, etc.
                     'value' => $value,
                     'dataType' => $argType,
                 ];
             }
         }
-        ksort($args); // Сортировка массива аргументов по ключам
-        return array_values($args);
+        return $args;
     }
 }
 

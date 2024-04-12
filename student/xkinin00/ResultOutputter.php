@@ -29,28 +29,25 @@ class ResultOutputter
     {
         // Output result
         $result_type = HelperFunctions::getDataType($result);
+        // print($result);
         // print("\n");
         // print($result_type);
         // print("\n");
             switch ($result_type){
                 case 'bool':
                     $this->stdout->writeBool($result);
-                    // echo $result;
                     break;
                 case 'int':
                     $this->stdout->writeInt((int)$result);
-                    // echo $result;
                     break;
                 case 'nil':
                     $this->stdout->writeString("");
                     break;
                 case 'float':
                     $this->stdout->writeFloat((float)$result);
-                    // echo $result;
                     break;
                 default:
                     $this->stdout->writeString($result);
-                    // echo $result;
             }
     }
     public function outputError(mixed $result): void

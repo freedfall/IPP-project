@@ -25,7 +25,7 @@ class Interpreter extends AbstractInterpreter
         $sorter = new InstructionSorter();
         $sortedInstructions = $sorter->sortInstructions($instructions);
 
-        $settings = new Settings();
+        $settings = new ExtendedSettings();
         $settings->processArgs();
 
         $inputReader = $settings->getInputReader();

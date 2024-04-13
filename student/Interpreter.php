@@ -15,6 +15,8 @@ use IPP\Core\FileInputReader;
 
 class Interpreter extends AbstractInterpreter
 {
+    public ?StatisticsCollector $statisticsCollector = null;
+
     public function execute(): int
     {   
         $helperFunctions = new HelperFunctions();
@@ -27,6 +29,26 @@ class Interpreter extends AbstractInterpreter
 
         $settings = new ExtendedSettings();
         $settings->processArgs();
+
+        if ($settings->stats) {
+            $this->statisticsCollector = new StatisticsCollector($settings->statsFile);
+
+            if ($settings->countInstructions) {
+                $this->statisticsCollector->setCollectInstructions();
+            }
+
+            if ($settings->hot) {
+                $this->statisticsCollector->setCollectHotInstruction();
+            }
+
+            if ($settings->vars) {
+                $this->statisticsCollector->setCollectMaxVars();
+            }
+
+            if ($settings->stack) {
+                $this->statisticsCollector->setCollectMaxStack();
+            }
+        }
 
         $inputReader = $settings->getInputReader();
 
@@ -50,6 +72,11 @@ class Interpreter extends AbstractInterpreter
         while ($processor->instructionIndex <= max(array_keys($sortedInstructions))) {
             if (isset($sortedInstructions[$processor->instructionIndex])) {
                 $currentInstruction = $sortedInstructions[$processor->instructionIndex];
+
+                if ($settings->countInstructions) {
+                    $this->statisticsCollector->increaseInstructionCount();
+                }
+
                 $processor->processInstruction($currentInstruction);
             }
             
@@ -68,6 +95,10 @@ class Interpreter extends AbstractInterpreter
             }
 
             $processor->indexModified = false;
+        }
+
+        if ($settings->stats) {
+            $this->statisticsCollector->saveStatistics($settings->statParams);
         }
 
         return 0; // Success

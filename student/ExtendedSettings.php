@@ -12,33 +12,36 @@ use IPP\Core\Settings as BaseSettings;
 use IPP\Core\Exception\ParameterException;
 
 class ExtendedSettings extends BaseSettings {
-    protected bool $stats = false;
-    protected string $statsFile = "";
-    protected bool $countInstructions = false;
-    protected bool $hot = false;
-    protected bool $vars = false;
-    protected bool $stack = false;
-    protected string $printString = "";
-    protected bool $eol = false;
+    public bool $stats = false;
+    public string $statsFile = "";
+    public bool $countInstructions = false;
+    public bool $hot = false;
+    public bool $vars = false;
+    public bool $stack = false;
+    public string $printString = "";
+    public bool $eol = false;
+    /**
+     * @var array<string>
+     */
+    public array $statParams = [];
 
     public function processArgs(): void {
         parent::processArgs();  // Call the original method to handle existing parameters
 
-        $extendedOptions = getopt("", [
-            "stats:",
-            "insts",
-            "hot",
-            "vars",
-            "stack",
-            "print:",
-            "eol"
-        ]);
+        $args = $_SERVER['argv'];
+        $extendedOptions = getopt("", ['insts', 'hot', 'vars', 'stack', 'print:', 'eol']);
+        $recognizedParams = ['--insts', '--hot', '--vars', '--stack', '--print=', '--eol'];
 
         // Process new parameters
-        if (isset($extendedOptions['stats'])) {
-            $this->stats = true;
-            $this->statsFile = $extendedOptions['stats'];
+        foreach ($args as $arg) {
+            if (strpos($arg, '--stats=') === 0) {
+                $this->statsFile = substr($arg, strlen('--stats='));
+                $this->stats = true;
+            } elseif (in_array($arg, $recognizedParams) || strpos($arg, '--print=') === 0) {
+                $this->statParams[] = $arg;
+            }
         }
+
         if (isset($extendedOptions['insts'])) {
             $this->countInstructions = true;
         }

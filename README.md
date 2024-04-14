@@ -75,7 +75,7 @@ Internally, the script utilizes dictionaries, tuples, and lists to manage the pr
 
 The interpreter is designed around several key classes and components that handle different aspects of the execution process:
 
-![class diagram](student/Interpret.png)
+![class diagram](student/Interpret%20Diagram.png)
 
   * **Interpreter** - The main class that orchestrates the parsing of input XML, instruction execution, and output handling.
   * **InstructionProcessor** - Processes individual instructions according to their opcodes and arguments.

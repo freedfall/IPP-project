@@ -65,3 +65,29 @@ Internally, the script utilizes dictionaries, tuples, and lists to manage the pr
 
 <a id="interpret"></a>
 ## Interpret
+
+### This part of the project involves the implementation and documentation of an interpreter for the unstructured imperative language IPPcode24, using PHP 8.3. The interpreter reads an XML representation of IPPcode24 instructions and executes them sequentially, maintaining runtime environments such as variable frames and a data stack.
+
+### Outline
+
+* [Structure](#structure)
+* [Detailed components](#detailed)
+  * [Interpreter](#interpreter)
+  * [XML Analyzer](#XML-analyzer)
+  * [Instruction Sorter](#sorter)
+  * [Instruction Processor](#processor)
+  * [Statistics Collector](#collector)
+* [Execution Process](#execution)
+* [Error Handling](#error-handling)
+
+<a id="structure"></a>
+### Structure
+
+The interpreter is designed around several key classes and components that handle different aspects of the execution process:
+
+  -**Interpreter** - The main class that orchestrates the parsing of input XML, instruction execution, and output handling.
+  -**InstructionProcessor** - Processes individual instructions according to their opcodes and arguments.
+  -**XMLAnalyzer** - Parses the input XML file and validates its structure and content.
+  -**InstructionSorter** - Orders instructions based on their 'order' attribute before execution.
+  -**ExtendedSettings** - Manages command-line arguments and initializes I/O settings.
+  -**StatisticsCollector** - Collects and outputs statistics about the program execution based on user-specified flags.

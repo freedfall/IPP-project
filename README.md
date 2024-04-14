@@ -85,9 +85,9 @@ Internally, the script utilizes dictionaries, tuples, and lists to manage the pr
 
 The interpreter is designed around several key classes and components that handle different aspects of the execution process:
 
-  -**Interpreter** - The main class that orchestrates the parsing of input XML, instruction execution, and output handling.
-  -**InstructionProcessor** - Processes individual instructions according to their opcodes and arguments.
-  -**XMLAnalyzer** - Parses the input XML file and validates its structure and content.
-  -**InstructionSorter** - Orders instructions based on their 'order' attribute before execution.
-  -**ExtendedSettings** - Manages command-line arguments and initializes I/O settings.
-  -**StatisticsCollector** - Collects and outputs statistics about the program execution based on user-specified flags.
+  - **Interpreter** - The main class that orchestrates the parsing of input XML, instruction execution, and output handling.
+  - **InstructionProcessor** - Processes individual instructions according to their opcodes and arguments.
+  - **XMLAnalyzer** - Parses the input XML file and validates its structure and content.
+  - **InstructionSorter** - Orders instructions based on their 'order' attribute before execution.
+  - **ExtendedSettings** - Manages command-line arguments and initializes I/O settings.
+  - **StatisticsCollector** - Collects and outputs statistics about the program execution based on user-specified flags.

@@ -110,8 +110,10 @@ The interpreter is designed around several key classes and components that handl
 
 #### **Statistics Collector**
 
-  * Usage: 
+  * Usage:
+
     --stats=filename.txt [--insts] [--hot] [--vars] [--stack] [--print="string"] [--eol]
+
   * Optionally activated by command-line arguments to track various metrics:
     * Total number of instructions executed `--insts`.
     * Most frequently executed instruction `--hot` (outputs first order of this instruction)

@@ -3,23 +3,24 @@
  * IPP Interpreter
  * Class for handling extended settings
  * @author Timur Kininbayev (xkinin00)
- * 
  */
 
 namespace IPP\Student;
 
 use IPP\Core\Settings as BaseSettings;
 use IPP\Core\Exception\ParameterException;
+use IPP\Core\ReturnCode;
 
 class ExtendedSettings extends BaseSettings {
-    public bool $stats = false;
     public string $statsFile = "";
-    public bool $countInstructions = false;
-    public bool $hot = false;
-    public bool $vars = false;
+    public bool $hot   = false;
+    public bool $eol   = false;
+    public bool $vars  = false;
+    public bool $stats = false;
     public bool $stack = false;
-    public string $printString = "";
-    public bool $eol = false;
+    public bool $countInstructions = false;
+
+
     /**
      * @var array<string>
      */
@@ -28,8 +29,11 @@ class ExtendedSettings extends BaseSettings {
     public function processArgs(): void {
         parent::processArgs();  // Call the original method to handle existing parameters
 
+        // Get the arguments
         $args = $_SERVER['argv'];
         $extendedOptions = getopt("", ['insts', 'hot', 'vars', 'stack', 'print:', 'eol']);
+
+        // set recognized parameters to be processed
         $recognizedParams = ['--insts', '--hot', '--vars', '--stack', '--print=', '--eol'];
 
         // Process new parameters
@@ -42,6 +46,7 @@ class ExtendedSettings extends BaseSettings {
             }
         }
 
+        // set the values of the new parameters for further processing
         if (isset($extendedOptions['insts'])) {
             $this->countInstructions = true;
         }
@@ -54,16 +59,13 @@ class ExtendedSettings extends BaseSettings {
         if (isset($extendedOptions['stack'])) {
             $this->stack = true;
         }
-        if (isset($extendedOptions['print'])) {
-            $this->printString = $extendedOptions['print'];
-        }
         if (isset($extendedOptions['eol'])) {
             $this->eol = true;
         }
 
         // Validate that --stats is present if any stats-related options are set
-        if (!$this->stats && ($this->countInstructions || $this->hot || $this->vars || $this->stack || $this->printString !== "")) {
-            throw new ParameterException("Missing --stats parameter with statistics-related options.");
+        if (!$this->stats && ($this->countInstructions || $this->hot || $this->vars || $this->stack)) {
+            HelperFunctions::handleException(ReturnCode::PARAMETER_ERROR);
         }
     }
 }

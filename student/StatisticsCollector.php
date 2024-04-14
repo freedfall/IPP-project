@@ -3,7 +3,6 @@
  * IPP Interpreter
  * Class for collecting statistics
  * @author Timur Kininbayev (xkinin00)
- * 
  */
 
 namespace IPP\Student;
@@ -14,53 +13,65 @@ class StatisticsCollector {
     public bool $collectMaxVars = false;
     public bool $collectMaxStack = false;
 
-    private int $instructionCount = 0;
-    private int $maxVariables = 0;
-    private int $maxStackSize = 0;
+    public int $instructionCount = 0;
+    public int $maxVariables = 0;
+    public int $maxStackSize = 0;
     private string $statsFile;
+
     /**
      * @var array<int>
      */
     private array $executedOrderCounts = [];
 
+    /**
+     * @var array<int>
+     */
+    public array $firstOrderEncountered = [];
 
     public function __construct(string $statsFile) {
         $this->statsFile = $statsFile;
     }
 
-    public function setCollectInstructions(): void {
-        $this->collectInstructions = true;
-    }
-
-    public function setCollectHotInstruction(): void {
-        $this->collectHotInstruction = true;
-    }
-
-    public function setCollectMaxVars(): void {
-        $this->collectMaxVars = true;
-    }
-
-    public function setCollectMaxStack(): void {
-        $this->collectMaxStack = true;
-    }
-
-    public function increaseInstructionCount(): void {
-        $this->instructionCount++;
-    }
-
-    public function updateExecutedOrder(int $order): void {
-        if (!isset($this->executedOrderCounts[$order])) {
-            $this->executedOrderCounts[$order] = 0;
+    /**
+     * Function to update the instruction count of every instruction
+     * @param string $instruction The instruction to update
+     * @return void
+     */
+    public function updateExecutedOrder(string $instruction): void {
+        if (!isset($this->executedOrderCounts[$instruction])) {
+            $this->executedOrderCounts[$instruction] = 0;
         }
-        $this->executedOrderCounts[$order]++;
+        $this->executedOrderCounts[$instruction]++;
     }
 
+    /**
+     * Function to set the first order encountered for an instruction
+     * @param string $instruction The instruction to set
+     * @param int $order The order to set
+     * @return void
+     */
+    public function setFirstOrderEncountered(string $instruction, int $order): void {
+        if (!isset($this->firstOrderEncountered[$instruction])) {
+            $this->firstOrderEncountered[$instruction] = $order;
+        }
+    }
+
+    /**
+     * Function to update max variable count at any point
+     * @param int $currentCount The current variable count
+     * @return void
+     */
     public function updateVariableCount(int $currentCount): void {
         if ($currentCount > $this->maxVariables) {
             $this->maxVariables = $currentCount;
         }
     }
 
+    /**
+     * Function to update max stack size at any point
+     * @param int $currentStackSize The current stack size
+     * @return void
+     */
     public function updateStackSize(int $currentStackSize): void {
         if ($currentStackSize > $this->maxStackSize) {
             $this->maxStackSize = $currentStackSize;
@@ -73,24 +84,25 @@ class StatisticsCollector {
      */
     public function saveStatistics(array $statParams): void {
         $lines = [];
+        $printRegex = '/--print=(.+)/';
         foreach ($statParams as $param) {
             switch ($param) {
                 case '--insts':
-                    $lines[] = "Total instructions executed: {$this->instructionCount}";
+                    $lines[] = "{$this->instructionCount}";
                     break;
                 case '--hot':
                     $mostExecutedOrder = array_search(max($this->executedOrderCounts), $this->executedOrderCounts);
-                    $lines[] = "Most frequently executed instruction order: {$mostExecutedOrder}";
+                    $lines[] = "{$this->firstOrderEncountered[$mostExecutedOrder]}";
                     break;
                 case '--vars':
-                    $lines[] = "Maximum variables at any point: {$this->maxVariables}";
+                    $lines[] = "{$this->maxVariables}";
                     break;
                 case '--stack':
-                    $lines[] = "Maximum stack size: {$this->maxStackSize}";
+                    $lines[] = "{$this->maxStackSize}";
                     break;
-                case '--print':
+                case preg_match($printRegex, $param) ? true : false:
                     $customMessage = substr($param, strlen('--print='));
-                    $lines[] = "Custom print message: {$customMessage}";
+                    $lines[] = "{$customMessage}";
                     break;
                 case '--eol':
                     $lines[] = "\n";

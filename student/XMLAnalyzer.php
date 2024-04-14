@@ -152,7 +152,7 @@ class XMLAnalyzer
                 if (!preg_match('/^arg([1-9][0-9]*)$/', $child->nodeName, $matches)) {
                     HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
                 }
-                $argNumber = (int)$matches[1]-1; // Получение номера аргумента и корректировка для использования в качестве ключа массива
+                $argNumber = (int)$matches[1]-1; // take argument order
                 $value = trim($child->nodeValue);
                 $args[$argNumber] = [
                     'type' => $child->nodeName,
@@ -161,7 +161,7 @@ class XMLAnalyzer
                 ];
             }
         }
-        ksort($args); // Сортировка массива аргументов по ключам
+        ksort($args); // Sort arguments by their number
         $expectedArgIndex = 0;
         foreach ($args as $index => $arg) {
             if ($index != $expectedArgIndex) {

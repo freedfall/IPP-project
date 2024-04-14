@@ -44,7 +44,7 @@ class InstructionProcessor
     /**
      * @var array<mixed> Data stack for temporary storage of values
      */
-    protected array $dataStack = [];
+    public array $dataStack = [];
 
     /**
      * @var InputReader Input reader
@@ -56,13 +56,16 @@ class InstructionProcessor
      */
     protected ResultOutputter $resultOutputter;
 
+    protected ?StatisticsCollector $statisticsCollector;
+
     public int $instructionIndex = 0;
     public bool $indexModified = false;
 
 
-    public function __construct(InputReader $inputReader, ResultOutputter $resultOutputter){
+    public function __construct(InputReader $inputReader, ResultOutputter $resultOutputter, StatisticsCollector $statisticsCollector){
         $this->inputReader = $inputReader;
         $this->resultOutputter = $resultOutputter;
+        $this->statisticsCollector = $statisticsCollector;
     }
     /**
      * Processes the instruction.
@@ -184,6 +187,21 @@ class InstructionProcessor
             default:
                 HelperFunctions::handleException(ReturnCode::INVALID_SOURCE_STRUCTURE);
         }
+    }
+
+    public function countVars(): int
+    {
+        $count = 0;
+        if ($this->globalFrame !== null){
+            $count += count($this->globalFrame);
+        }
+        if ($this->tempFrame !== null){
+            $count += count($this->tempFrame);
+        }
+        foreach ($this->frameStack as $frame){
+            $count += count($frame);
+        }
+        return $count;
     }
     /**
      * Add all the labels from document into array
@@ -426,6 +444,7 @@ class InstructionProcessor
     {
         $value = $this->determineValue($args[0]);
         array_push($this->dataStack, $value);
+        
     }
 
     /**

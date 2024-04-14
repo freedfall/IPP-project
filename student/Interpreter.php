@@ -30,23 +30,25 @@ class Interpreter extends AbstractInterpreter
         $settings = new ExtendedSettings();
         $settings->processArgs();
 
-        if ($settings->stats) {
-            $this->statisticsCollector = new StatisticsCollector($settings->statsFile);
+        //create statistics collector even if stats are not enabled to avoid errors
+        $this->statisticsCollector = new StatisticsCollector($settings->statsFile);
 
+        //set statistics collector settings
+        if ($settings->stats) {
             if ($settings->countInstructions) {
-                $this->statisticsCollector->setCollectInstructions();
+                $this->statisticsCollector->collectInstructions = true;
             }
 
             if ($settings->hot) {
-                $this->statisticsCollector->setCollectHotInstruction();
+                $this->statisticsCollector->collectHotInstruction = true;
             }
 
             if ($settings->vars) {
-                $this->statisticsCollector->setCollectMaxVars();
+                $this->statisticsCollector->collectMaxVars = true;
             }
 
             if ($settings->stack) {
-                $this->statisticsCollector->setCollectMaxStack();
+                $this->statisticsCollector->collectMaxStack = true;
             }
         }
 
@@ -57,8 +59,9 @@ class Interpreter extends AbstractInterpreter
 
         $resultOutputter = new ResultOutputter($stdoutWritter, $stderrWritter);
 
-        $processor = new InstructionProcessor($inputReader, $resultOutputter);
+        $processor = new InstructionProcessor($inputReader, $resultOutputter, $this->statisticsCollector);
 
+        // if there are no instructions, return 0
         if (empty($sortedInstructions)) {
             return 0; // Success
         }
@@ -73,8 +76,30 @@ class Interpreter extends AbstractInterpreter
             if (isset($sortedInstructions[$processor->instructionIndex])) {
                 $currentInstruction = $sortedInstructions[$processor->instructionIndex];
 
-                if ($settings->countInstructions) {
-                    $this->statisticsCollector->increaseInstructionCount();
+                // handling statistics
+                // increment instruction count if it is needed
+                if ($settings->countInstructions && $currentInstruction['opcode'] !== 'LABEL' && $currentInstruction['opcode'] !== 'DRPINT' && $currentInstruction['opcode'] !== 'BREAK') {
+                    $this->statisticsCollector->instructionCount++;
+                }
+                // find the most executed instruction order if it is needed
+                if ($settings->hot) {
+                    $instructionName = strtoupper($currentInstruction['opcode']);
+
+                    $this->statisticsCollector->updateExecutedOrder($instructionName);
+
+                    if (!isset($this->statisticsCollector->firstOrderEncountered[$instructionName])) {
+                        $this->statisticsCollector->firstOrderEncountered[$instructionName] = $currentInstruction['order'];
+                    }
+                }
+
+                // update variable count if it is needed
+                if ($settings->vars) {
+                    $this->statisticsCollector->updateVariableCount($processor->countVars());
+                }
+
+                // update stack size if it is needed
+                if ($settings->stack){
+                    $this->statisticsCollector->updateStackSize(count($processor->dataStack));
                 }
 
                 $processor->processInstruction($currentInstruction);
@@ -97,6 +122,7 @@ class Interpreter extends AbstractInterpreter
             $processor->indexModified = false;
         }
 
+        // output statistics if it is needed
         if ($settings->stats) {
             $this->statisticsCollector->saveStatistics($settings->statParams);
         }

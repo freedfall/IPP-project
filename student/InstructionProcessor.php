@@ -193,13 +193,25 @@ class InstructionProcessor
     {
         $count = 0;
         if ($this->globalFrame !== null){
-            $count += count($this->globalFrame);
+            foreach ($this->globalFrame as $var){
+                if ($var !== null){
+                    $count++;
+                }
+            }
         }
         if ($this->tempFrame !== null){
-            $count += count($this->tempFrame);
+            foreach ($this->tempFrame as $var){
+                if ($var !== null){
+                    $count++;
+                }
+            }
         }
         foreach ($this->frameStack as $frame){
-            $count += count($frame);
+            foreach ($frame as $var){
+                if ($var !== null){
+                    $count++;
+                }
+            }
         }
         return $count;
     }
@@ -1031,8 +1043,24 @@ class InstructionProcessor
         if (!array_key_exists($label, $this->labels)) {
             HelperFunctions::handleException(ReturnCode::SEMANTIC_ERROR);
         }
-        if (HelperFunctions::getDataType($symb1Value) !== HelperFunctions::getDataType($symb2Value)){
-            HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+        if (is_bool($symb1Value)){
+            if (is_bool($symb2Value) || $symb2Value === 'true' || $symb2Value === 'false'){
+                $symb1Value = $symb1Value ? 'true' : 'false';
+            } else{
+                HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            }
+        }
+        if (is_bool($symb2Value)){
+            if (is_bool($symb1Value) || $symb1Value === 'true' || $symb1Value === 'false'){
+                $symb2Value = $symb2Value ? 'true' : 'false';
+            } else{
+                HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            }
+        }
+        if (HelperFunctions::getDataType($symb1Value) != HelperFunctions::getDataType($symb2Value)){
+            if ($symb1Value !== 'nil@nil' && $symb2Value !== 'nil@nil'){
+                HelperFunctions::handleException(ReturnCode::OPERAND_TYPE_ERROR);
+            }
         }
         if ($symb1Value != $symb2Value){
             $this->instructionIndex = $this->labels[$label];

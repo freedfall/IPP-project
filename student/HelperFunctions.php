@@ -7,7 +7,24 @@
  */
 
 namespace IPP\Student;
+use IPP\Student\Exceptions\ValueException;
+use IPP\Student\Exceptions\SemanticException;
+use IPP\Student\Exceptions\ParameterException;
+use IPP\Student\Exceptions\OperandTypeException;
+use IPP\Student\Exceptions\FrameAccessException;
+use IPP\Student\Exceptions\OperandValueException;
+use IPP\Student\Exceptions\VariableAccessException;
+use IPP\Student\Exceptions\SourceStructureException;
+use IPP\Student\Exceptions\StringOperationException;
+
 use IPP\Core\ReturnCode;
+use IPP\Core\Exception\XMLException;
+use IPP\Core\Exception\InputFileException;
+use IPP\Core\Exception\OutputFileException;
+use IPP\Core\Exception\IntegrationException;
+use IPP\Core\Exception\InternalErrorException;
+use IPP\Core\Exception\NotImplementedException;
+
 
 class HelperFunctions {
 
@@ -17,50 +34,35 @@ class HelperFunctions {
             case ReturnCode::OK:
                 break;
             case ReturnCode::PARAMETER_ERROR:
-                fwrite(STDERR, "ERROR - a missing script parameter or the use of a forbidden parameter combination;\n");
-                exit(ReturnCode::PARAMETER_ERROR);
+                throw new ParameterException();
             case ReturnCode::INPUT_FILE_ERROR:
-                fwrite(STDERR, "ERROR - error when opening input files\n");
-                exit(ReturnCode::INPUT_FILE_ERROR);
+                throw new InputFileException();
             case ReturnCode::OUTPUT_FILE_ERROR:
-                fwrite(STDERR, "ERROR - error when opening output files for writing\n");
-                exit(ReturnCode::OUTPUT_FILE_ERROR);
+                throw new OutputFileException();
             case ReturnCode::INVALID_XML_ERROR:
-                fwrite(STDERR, "ERROR - incorrect XML format in the input file\n");
-                exit(ReturnCode::INVALID_XML_ERROR);
+                throw new XMLException();
             case ReturnCode::INVALID_SOURCE_STRUCTURE:
-                fwrite(STDERR, "unexpected XML structure (e.g. element for argument outside element for instruction, instructions with duplicate order or negative order)\n");
-                exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
+                throw new SourceStructureException();
             case ReturnCode::SEMANTIC_ERROR:
-                fwrite(STDERR, "ERROR - error during semantic checks of input code in IPPcode24\n");
-                exit(ReturnCode::SEMANTIC_ERROR);
+                throw new SemanticException();
             case ReturnCode::OPERAND_TYPE_ERROR:
-                fwrite(STDERR, "ERROR - wrong operand types\n");
-                exit(ReturnCode::OPERAND_TYPE_ERROR);
+                throw new OperandTypeException();
             case ReturnCode::VARIABLE_ACCESS_ERROR:
-                fwrite(STDERR, "ERROR - access to a non-existing variable (memory frame exists)\n");
-                exit(ReturnCode::VARIABLE_ACCESS_ERROR);
+                throw new VariableAccessException();
             case ReturnCode::FRAME_ACCESS_ERROR:
-                fwrite(STDERR, "ERROR - the memory frame does not exist\n");
-                exit(ReturnCode::FRAME_ACCESS_ERROR);
+                throw new FrameAccessException();
             case ReturnCode::VALUE_ERROR:
-                fwrite(STDERR, "ERROR - missing value\n");
-                exit(ReturnCode::VALUE_ERROR);
+                throw new ValueException();
             case ReturnCode::OPERAND_VALUE_ERROR:
-                fwrite(STDERR, "ERROR -  wrong operand value\n");
-                exit(ReturnCode::OPERAND_VALUE_ERROR);
+                throw new OperandValueException();
             case ReturnCode::STRING_OPERATION_ERROR:
-                fwrite(STDERR, "ERRROR - incorrect work with the string\n");
-                exit(ReturnCode::STRING_OPERATION_ERROR);
+                throw new StringOperationException();
             case ReturnCode::INTEGRATION_ERROR:
-                fwrite(STDERR, "ERROR - integration error\n");
-                exit(ReturnCode::INTEGRATION_ERROR);
+                throw new IntegrationException();
             case ReturnCode::INTERNAL_ERROR:
-                fwrite(STDERR, "ERROR - internal error\n");
-                exit(ReturnCode::INTERNAL_ERROR);
+                throw new InternalErrorException();
             default:
-                fwrite(STDERR, "ERROR - unknown error\n");
-                exit(ReturnCode::INTERNAL_ERROR);
+                throw new NotImplementedException();
         }
     }
 

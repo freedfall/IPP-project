@@ -91,8 +91,21 @@ class StatisticsCollector {
                     $lines[] = "{$this->instructionCount}";
                     break;
                 case '--hot':
-                    $mostExecutedOrder = array_search(max($this->executedOrderCounts), $this->executedOrderCounts);
-                    $lines[] = "{$this->firstOrderEncountered[$mostExecutedOrder]}";
+                    $maxExecutions = max($this->executedOrderCounts);
+
+                    // search for instructions with the maximum number of executions
+                    $mostExecutedOrders = array_keys($this->executedOrderCounts, $maxExecutions);
+
+                    // search for the first order of the most executed instructions
+                    if (count($mostExecutedOrders) > 1) {
+                        // if there is a conflict, take the instruction with the lowest order
+                        $minOrder = min($mostExecutedOrders);
+                    } else {
+                        // if there is no conflict, take the only instruction
+                        $minOrder = $mostExecutedOrders[0];
+                    }
+
+                    $lines[] = "{$this->firstOrderEncountered[$minOrder]}";
                     break;
                 case '--vars':
                     $lines[] = "{$this->maxVariables}";
@@ -105,7 +118,7 @@ class StatisticsCollector {
                     $lines[] = "{$customMessage}";
                     break;
                 case '--eol':
-                    $lines[] = "\n";
+                    $lines[] = "";
                     break;
             }
         }
